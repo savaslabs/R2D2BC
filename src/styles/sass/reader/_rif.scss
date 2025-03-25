@@ -90,20 +90,22 @@ iframe {
     z-index: 4;
     transform-origin: left;
     animation: prevBack 0.7s ease-in-out forwards;
-    transform: rotateY(0deg);
+    transform: rotateY(0deg) translateX(2px);
+    border-left: 2px solid rgba(67, 67, 67, 0.35);
   }
 
   &.page-front {
     z-index: 5;
     transform-origin: right;
-    transform: rotateY(var(--flip-amount));
+    transform: rotateY(var(--flip-amount)) translateX(2px);
     animation: prevFront 0.7s ease-in-out forwards;
+    border-right: 2px solid rgba(67, 67, 67, 0.35);
   }
 }
 
 @keyframes nextFront {
   from {
-    transform: rotateY(0deg) translateX(-1px);
+    transform: rotateY(0deg)
   }
   to {
     transform: rotateY(calc(0deg - var(--flip-amount))) translateX(-1px);
@@ -129,13 +131,11 @@ iframe {
 }
 
 @keyframes prevBack {
-  
-
   from {
-    transform: rotateY(calc(0deg - var(--flip-amount))) translateX(-1px);
+    transform: rotateY(calc(0deg - var(--flip-amount)));
   }
   to {
-    transform: rotateY(0deg) translateX(-1px);
+    transform: rotateY(0deg);
   }
 }
 

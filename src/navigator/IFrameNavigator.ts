@@ -628,15 +628,12 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
             secondSpread.appendChild(this.iframes[1]);
             this.firstSpread.style.clipPath =
-              "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
-            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+              "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";
             secondSpread.style.clipPath =
-              "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
-            secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
+              "polygon(calc(0%) 0%, 100% 0%, 100% 100%, calc(0%) 100%)";
           } else {
             this.firstSpread.style.clipPath =
-              "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
-            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+            "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";
           }
         } else {
           this.iframes[0].style.paddingTop =
@@ -2193,6 +2190,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           iframe.style.width = width;
           if (iframe.parentElement) {
             iframe.parentElement.style.height = height;
+            iframe.parentElement.style.width = width;
           }
         }
       }
@@ -2579,11 +2577,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         secondSpread.appendChild(this.iframes[1]);
 
         this.firstSpread.style.clipPath =
-          "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
-        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+        "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";        
         secondSpread.style.clipPath =
-          "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
-        secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
+        "polygon(calc(0%) 0%, 100% 0%, 100% 100%, calc(0%) 100%)";;
       } else {
         if (this.iframes.length === 2) {
           this.iframes.pop();
@@ -2592,8 +2588,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           }
         }
         this.firstSpread.style.clipPath =
-          "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
-        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+        "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";        
       }
       this.precessContentForIframe();
     }
@@ -2790,6 +2785,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private handlePreviousChapterClick(
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
+    this.cloneIFrames();
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
@@ -2831,7 +2827,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   private flipPrev(): void {
-    this.cloneIFrames();
     const clones = this.searchForClones();
     const clone1 = clones[0];
     const prevPage2 = this.iframes[1];
@@ -2845,6 +2840,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private handleNextChapterClick(
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
+    this.cloneIFrames();
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
@@ -2886,7 +2882,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   private flipNext(): void {
-    this.cloneIFrames();
     const clones = this.searchForClones();
     const clone2 = clones[1];
     const nextPage1 = this.iframes[0];
