@@ -3297,7 +3297,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         iframe.style.overflow = "hidden";
         
         // Savas: delete cloned iframes and remove animation classes if they exist
-        this.resetIframes.bind(this);
+        this.resetIframes();
       }
     }, 150);
   }
