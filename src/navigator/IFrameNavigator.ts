@@ -3292,11 +3292,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     // We set a timeOut so that settings can be applied when opacity is still 0
     setTimeout(() => {
       if (!this.isBeingStyled) {
-        iframe.style.opacity = "0";
+        iframe.style.opacity = "1";
         iframe.style.border = "none";
         iframe.style.overflow = "hidden";
-        iframe.style.opacity = "1";
-
+        
         // Savas: delete cloned iframes and remove animation classes if they exist
         this.resetIframes.bind(this);
       }
