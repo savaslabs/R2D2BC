@@ -1613,6 +1613,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
+  // Savas: creates a clone of the iframes in order to trigger the animation over top of new pages
   private cloneIFrames() {
     try {
       for (const iframe of this.iframes) {
@@ -1751,6 +1752,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
       this.showLoadingMessageAfterDelay();
     }
+
     this.currentSpreadLinks = {};
 
     function writeIframeDoc(content: string, href: string) {
@@ -2477,7 +2479,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ) {
     let valid = true;
-
     if (this.sample?.isSampleRead && this.publication.positions) {
       const locator = this.currentLocator();
       let progress = Math.round(
@@ -3289,14 +3290,17 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private showIframeContents(iframe: HTMLIFrameElement) {
     this.isBeingStyled = false;
     // We set a timeOut so that settings can be applied when opacity is still 0
-    if (!this.isBeingStyled) {
-      iframe.style.opacity = "0";
-      iframe.style.border = "none";
-      iframe.style.overflow = "hidden";
-      iframe.style.opacity = "1";
+    setTimeout(() => {
+      if (!this.isBeingStyled) {
+        iframe.style.opacity = "0";
+        iframe.style.border = "none";
+        iframe.style.overflow = "hidden";
+        iframe.style.opacity = "1";
 
-      setTimeout(this.resetIframes.bind(this), 200);
-    }
+        // Savas: delete cloned iframes and remove animation classes if they exist
+        this.resetIframes.bind(this);
+      }
+    }, 150);
   }
 
   private showLoadingMessageAfterDelay() {
@@ -3322,24 +3326,24 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private hideLoadingMessage() {
     setTimeout(() => {
       this.isLoading = false;
-        if (this.loadingMessage) {
-          this.loadingMessage.style.display = "none";
-          this.loadingMessage.classList.remove("is-loading");
+      if (this.loadingMessage) {
+        this.loadingMessage.style.display = "none";
+        this.loadingMessage.classList.remove("is-loading");
+      }
+      if (this.view?.layout !== "fixed") {
+        if (this.view?.atStart() && this.view?.atEnd()) {
+          if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
+          this.emit("resource.fits");
+        } else if (this.view?.atEnd()) {
+          if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
+          this.emit("resource.end");
+        } else if (this.view?.atStart()) {
+          if (this.api?.resourceAtStart) this.api?.resourceAtStart();
+          this.emit("resource.start");
         }
-        if (this.view?.layout !== "fixed") {
-          if (this.view?.atStart() && this.view?.atEnd()) {
-            if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
-            this.emit("resource.fits");
-          } else if (this.view?.atEnd()) {
-            if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
-            this.emit("resource.end");
-          } else if (this.view?.atStart()) {
-            if (this.api?.resourceAtStart) this.api?.resourceAtStart();
-            this.emit("resource.start");
-          }
-        }
-        if (this.api?.resourceReady) this.api?.resourceReady();
-        this.emit("resource.ready");
+      }
+      if (this.api?.resourceReady) this.api?.resourceReady();
+      this.emit("resource.ready");
     }, 150);
   }
 
