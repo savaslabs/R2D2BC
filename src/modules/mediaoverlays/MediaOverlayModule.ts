@@ -823,31 +823,27 @@ export class MediaOverlayModule implements ReaderModule {
             : R2_MO_CLASS_ACTIVE;
     }
 
-    if (this.pid) {
-      let prevElement;
-
-      if (this.currentLinkIndex === 0) {
-        prevElement = this.navigator.iframes[0].contentDocument?.getElementById(
-          this.pid
-        );
-      } else {
-        prevElement = this.navigator.iframes[1].contentDocument?.getElementById(
-          this.pid
-        );
+    // Savas: Remove classActive from all elements in both iframes. Previously this only worked on the first iframe.
+    this.navigator.iframes.forEach((iframe) => {
+      const doc = iframe.contentDocument;
+      if (doc) {
+        doc.querySelectorAll(`.${classActive}`).forEach((el) => {
+          // Only remove if it doesn't match the new id (if provided)
+          if (el.id !== id) {
+            el.classList.remove(classActive);
+          }
+        });
       }
-
-      if (prevElement) {
-        prevElement.classList.remove(classActive);
-      }
-    }
+    });
 
     let current;
+
     if (id) {
-      if (this.currentLinkIndex === 0) {
-        current = this.navigator.iframes[0].contentDocument?.getElementById(id);
-      } else {
-        current = this.navigator.iframes[1].contentDocument?.getElementById(id);
-      }
+      const activeIframe =
+        this.currentLinkIndex === 0
+          ? this.navigator.iframes[0]
+          : this.navigator.iframes[1];
+      current = activeIframe.contentDocument?.getElementById(id);
       if (current) {
         current.classList.add(classActive);
       }
