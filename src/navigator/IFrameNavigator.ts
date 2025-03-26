@@ -635,7 +635,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
           } else {
             this.firstSpread.style.clipPath =
-              "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
+              "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
             this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
           }
         } else {
