@@ -128,6 +128,7 @@ export class MediaOverlayModule implements ReaderModule {
   }
 
   async initializeResource(links: Array<Link | undefined>) {
+    this.setupMediaOverlayClickHandlers();
     this.currentLinks = links;
     this.currentLinkIndex = 0;
     await this.playLink();
@@ -861,5 +862,125 @@ export class MediaOverlayModule implements ReaderModule {
         behavior: "smooth",
       });
     }
+  }
+
+  private setupMediaOverlayClickHandlers() {
+    const handleClickOnMediaOverlay = async (event: MouseEvent) => {
+      if (!this.navigator.rights.enableMediaOverlays) {
+        return;
+      }
+
+      const target = event.target as HTMLElement;
+      let currentElement: HTMLElement | null = target;
+
+      while (currentElement) {
+        if (currentElement.id) {
+          log.log(`Found element with ID: ${currentElement.id}`);
+
+          // Stop current playback if any
+          if (this.audioElement) {
+            this.audioElement.pause();
+          }
+
+          // Search through both links in currentLinks
+          for (let i = 0; i < this.currentLinks.length; i++) {
+            const link = this.currentLinks[i];
+
+            // Initialize media overlay if needed
+            if (
+              link?.Properties?.MediaOverlay &&
+              !link.MediaOverlays?.initialized
+            ) {
+              try {
+                const moUrl = link.Properties.MediaOverlay;
+                const moUrlObjFull = new URL(
+                  moUrl,
+                  this.publication.manifestUrl
+                );
+                const response = await fetch(
+                  moUrlObjFull.toString(),
+                  this.navigator.requestConfig
+                );
+                const moJson = await response.json();
+
+                link.MediaOverlays = TaJsonDeserialize<MediaOverlayNode>(
+                  moJson,
+                  MediaOverlayNode
+                );
+                link.MediaOverlays.initialized = true;
+              } catch (err) {
+                log.error(`Error fetching media overlay:`, err);
+                continue;
+              }
+            }
+
+            // Search for the ID in this link's media overlay
+            if (link?.MediaOverlays) {
+              const foundNode = this.findMediaOverlayNodeById(
+                link.MediaOverlays,
+                currentElement.id
+              );
+              if (foundNode) {
+                log.log(`Found media overlay in link ${i}`);
+                this.currentLinkIndex = i;
+                this.mediaOverlayRoot = link.MediaOverlays;
+                this.mediaOverlayTextAudioPair = foundNode;
+                await this.playMediaOverlaysAudio(
+                  foundNode,
+                  undefined,
+                  undefined
+                );
+                return;
+              }
+            }
+          }
+
+          log.log(
+            `No media overlay found for ID ${currentElement.id} in current links`
+          );
+          return;
+        }
+        currentElement = currentElement.parentElement;
+      }
+    };
+
+    // Add click handlers to all iframes
+    this.navigator.iframes?.forEach((iframe) => {
+      try {
+        const contentDoc = iframe.contentDocument;
+        if (contentDoc) {
+          contentDoc.removeEventListener("click", handleClickOnMediaOverlay);
+          contentDoc.addEventListener("click", handleClickOnMediaOverlay);
+        }
+      } catch (e) {
+        console.error("Error attaching click handler to iframe:", e);
+      }
+    });
+  }
+
+  // Find a media overlay node by ID
+  private findMediaOverlayNodeById(
+    node: MediaOverlayNode,
+    id: string
+  ): MediaOverlayNode | undefined {
+    // Check if this node matches the ID
+    if (node.Text) {
+      const hrefUrlObj = new URL("https://dita.digital/" + node.Text);
+      if (hrefUrlObj.hash && hrefUrlObj.hash.substr(1) === id) {
+        return node;
+      }
+    }
+
+    // Recursively check children
+    if (node.Children && node.Children.length > 0) {
+      for (const child of node.Children) {
+        const match = this.findMediaOverlayNodeById(child, id);
+        if (match) {
+          return match;
+        }
+      }
+    }
+
+    return undefined;
   }
 }
