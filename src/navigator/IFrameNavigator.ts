@@ -628,12 +628,15 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
             secondSpread.appendChild(this.iframes[1]);
             this.firstSpread.style.clipPath =
-              "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";
+              "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
+            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";  
             secondSpread.style.clipPath =
-              "polygon(calc(0%) 0%, 100% 0%, 100% 100%, calc(0%) 100%)";
+              "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
+            secondSpread.style.boxShadow = "0 0 8px 2px #ccc";    
           } else {
             this.firstSpread.style.clipPath =
-            "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";
+              "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
+            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";  
           }
         } else {
           this.iframes[0].style.paddingTop =
@@ -1372,7 +1375,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   private async handleIFrameLoad(iframe: HTMLIFrameElement): Promise<void> {
     if (this.errorMessage) this.errorMessage.style.display = "none";
-    //this.showLoadingMessageAfterDelay();
+    // Savas: remove loading screen when triggering page animation
+    if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
+      this.showLoadingMessageAfterDelay();
+    }
     try {
       let bookViewPosition: number | undefined = 0;
       if (this.newPosition) {
@@ -1741,8 +1747,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const self = this;
     var index = this.publication.getSpineIndex(this.currentChapterLink.href);
     var even: boolean = (index ?? 0) % 2 === 1;
-    //this.showLoadingMessageAfterDelay();
-
+    // Savas: remove loading screen when triggering page animation
+    if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
+      this.showLoadingMessageAfterDelay();
+    }
     this.currentSpreadLinks = {};
 
     function writeIframeDoc(content: string, href: string) {
@@ -2127,74 +2135,71 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       }
     }
     if (this.publication.isFixedLayout) {
-      this.setIframeBlockSize(index);
-    }
-  }
-
-  private setIframeBlockSize(index) {
-    setTimeout(() => {
-      let height, width;
-      let doc;
-      if (index === 0 && this.iframes?.length === 2) {
-        doc = this.iframes[1].contentDocument;
-      } else {
-        doc = this.iframes[0].contentDocument;
-      }
-      if (doc && doc.body) {
-        height = getComputedStyle(doc.body).height;
-        width = getComputedStyle(doc.body).width;
-        if (
-          parseInt(height.toString().replace("px", "")) === 0 ||
-          parseInt(width.toString().replace("px", "")) === 0
-        ) {
-          const head = HTMLUtilities.findIframeElement(
-            doc,
-            "head"
-          ) as HTMLHeadElement;
-          if (head) {
-            const viewport = HTMLUtilities.findElement(
-              head,
-              "meta[name=viewport]"
-            );
-            if (viewport) {
-              var dimensionsStr = viewport.content;
-              var obj = dimensionsStr.split(",").reduce((obj, s) => {
-                var [key, value] = s.match(/[^\s;=]+/g);
-                obj[key] = isNaN(Number(value)) ? value : +value;
-                return obj;
-              }, {});
-              height = obj["height"] + "px";
-              width = obj["width"] + "px";
+      setTimeout(() => {
+        let height, width;
+        let doc;
+        if (index === 0 && this.iframes?.length === 2) {
+          doc = this.iframes[1].contentDocument;
+        } else {
+          doc = this.iframes[0].contentDocument;
+        }
+        if (doc && doc.body) {
+          height = getComputedStyle(doc.body).height;
+          width = getComputedStyle(doc.body).width;
+          if (
+            parseInt(height.toString().replace("px", "")) === 0 ||
+            parseInt(width.toString().replace("px", "")) === 0
+          ) {
+            const head = HTMLUtilities.findIframeElement(
+              doc,
+              "head"
+            ) as HTMLHeadElement;
+            if (head) {
+              const viewport = HTMLUtilities.findElement(
+                head,
+                "meta[name=viewport]"
+              );
+              if (viewport) {
+                var dimensionsStr = viewport.content;
+                var obj = dimensionsStr.split(",").reduce((obj, s) => {
+                  var [key, value] = s.match(/[^\s;=]+/g);
+                  obj[key] = isNaN(Number(value)) ? value : +value;
+                  return obj;
+                }, {});
+                height = obj["height"] + "px";
+                width = obj["width"] + "px";
+              }
             }
           }
         }
-      }
-
-      var iframeParent =
-        index === 0 && this.iframes.length === 2
-          ? this.iframes[1].parentElement?.parentElement
-          : (this.iframes[0].parentElement?.parentElement as HTMLElement);
-      if (iframeParent && width) {
-        var widthRatio =
-          (parseInt(getComputedStyle(iframeParent).width) - 100) /
-          (this.iframes.length === 2
-            ? parseInt(width.toString().replace("px", "")) * 2 + 200
-            : parseInt(width.toString().replace("px", "")));
-        var heightRatio =
-          (parseInt(getComputedStyle(iframeParent).height) - 100) /
-          parseInt(height.toString().replace("px", ""));
-        var scale = Math.min(widthRatio, heightRatio);
-        iframeParent.style.transform = "scale(" + scale + ")";
-        for (const iframe of this.iframes) {
-          iframe.style.height = height;
-          iframe.style.width = width;
-          if (iframe.parentElement) {
-            iframe.parentElement.style.height = height;
-            iframe.parentElement.style.width = width;
+  
+        var iframeParent =
+          index === 0 && this.iframes.length === 2
+            ? this.iframes[1].parentElement?.parentElement
+            : (this.iframes[0].parentElement?.parentElement as HTMLElement);
+        if (iframeParent && width) {
+          var widthRatio =
+            (parseInt(getComputedStyle(iframeParent).width) - 100) /
+            (this.iframes.length === 2
+              ? parseInt(width.toString().replace("px", "")) * 2 + 200
+              : parseInt(width.toString().replace("px", "")));
+          var heightRatio =
+            (parseInt(getComputedStyle(iframeParent).height) - 100) /
+            parseInt(height.toString().replace("px", ""));
+          var scale = Math.min(widthRatio, heightRatio);
+          iframeParent.style.transform = "scale(" + scale + ")";
+          for (const iframe of this.iframes) {
+            iframe.style.height = height;
+            iframe.style.width = width;
+            if (iframe.parentElement) {
+              iframe.parentElement.style.height = height;
+              // Savas: we need to add this width style inline to allow the absolute positioned iframes to take up horizontal space
+              iframe.parentElement.style.width = width;
+            }
           }
         }
-      }
-    }, 400);
+      }, 400);
+    }
   }
 
   private static goBack() {
@@ -2577,9 +2582,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         secondSpread.appendChild(this.iframes[1]);
 
         this.firstSpread.style.clipPath =
-        "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";        
+          "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
+        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
         secondSpread.style.clipPath =
-        "polygon(calc(0%) 0%, 100% 0%, 100% 100%, calc(0%) 100%)";;
+          "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
+        secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
       } else {
         if (this.iframes.length === 2) {
           this.iframes.pop();
@@ -2588,7 +2595,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           }
         }
         this.firstSpread.style.clipPath =
-        "polygon(0% 0%, calc(100%) 0%, calc(100%) 100%, 0% 100%)";        
+          "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
+        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";       
       }
       this.precessContentForIframe();
     }
@@ -2710,13 +2718,13 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       });
     }
 
-    // setTimeout(() => {
-    //   if (this.view?.layout !== "fixed") {
-    //     if (this.view?.isScrollMode()) {
-    //       this.view?.setIframeHeight?.(this.iframes[0]);
-    //     }
-    //   }
-    // }, 100);
+    setTimeout(() => {
+      if (this.view?.layout !== "fixed") {
+        if (this.view?.isScrollMode()) {
+          this.view?.setIframeHeight?.(this.iframes[0]);
+        }
+      }
+    }, 100);
     setTimeout(async () => {
       if (oldPosition) {
         this.view?.goToProgression(oldPosition);
@@ -2785,8 +2793,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private handlePreviousChapterClick(
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
-    this.cloneIFrames();
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
+      // Savas: clones ifames if there are multiple page columns
+      this.cloneIFrames();
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
       index = index - 2;
@@ -2802,6 +2811,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       };
 
       this.stopReadAloud();
+      // Savas: Adds flipping animation if there are multiple page columns
       this.flipPrev();
       this.navigate(position, false);
     } else {
@@ -2816,7 +2826,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         };
 
         this.stopReadAloud();
-        this.flipPrev();
         this.navigate(position, false);
       }
     }
@@ -2826,6 +2835,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
+  // Savas: Adds HTML classes to pages to trigger animations
   private flipPrev(): void {
     const clones = this.searchForClones();
     const clone1 = clones[0];
@@ -2840,8 +2850,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private handleNextChapterClick(
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
-    this.cloneIFrames();
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
+      // Savas: clones ifames if there are multiple page columns
+      this.cloneIFrames();
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
       index = index + 2;
@@ -2858,6 +2869,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       };
 
       this.stopReadAloud();
+      // Savas: Adds flipping animation if there are multiple page columns
       this.flipNext();
       this.navigate(position, false);
     } else {
@@ -2871,7 +2883,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           title: this.nextChapterLink.title,
         };
         this.stopReadAloud();
-        this.flipNext();
         this.navigate(position, false);
       }
     }
@@ -2881,6 +2892,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
+  // Savas: Adds HTML classes to pages to trigger animations
   private flipNext(): void {
     const clones = this.searchForClones();
     const clone2 = clones[1];
@@ -2892,6 +2904,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
+  // Savas: checks to see if there's a sibling iframe page to prevent page flip animation
   private hasValidIframeSibling(page) {
     let parentDiv = page.closest('div');
     
@@ -2904,10 +2917,12 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     });
   }
 
+  // Savas: utility for checking for cloned iframes
   private searchForClones() {
     return document.querySelectorAll('.iframe-clone');
   }
 
+  // Savas: removes iframe clones and removes animation classes from remaining iframes
   private resetIframes() {
     const clones = this.searchForClones();
     clones.forEach(clone => clone.remove());
@@ -3135,6 +3150,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.currentChapterLink.href + "#" + this.newElementId;
         }
 
+        // Savas: remove loading screen when triggering page animation
+        if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
+          this.hideIframeContents();
+          this.showLoadingMessageAfterDelay();
+        }
         if (locator.locations === undefined) {
           locator.locations = {
             progression: 0,
@@ -3300,25 +3320,27 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   private hideLoadingMessage() {
-    this.isLoading = false;
-      if (this.loadingMessage) {
-        this.loadingMessage.style.display = "none";
-        this.loadingMessage.classList.remove("is-loading");
-      }
-      if (this.view?.layout !== "fixed") {
-        if (this.view?.atStart() && this.view?.atEnd()) {
-          if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
-          this.emit("resource.fits");
-        } else if (this.view?.atEnd()) {
-          if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
-          this.emit("resource.end");
-        } else if (this.view?.atStart()) {
-          if (this.api?.resourceAtStart) this.api?.resourceAtStart();
-          this.emit("resource.start");
+    setTimeout(() => {
+      this.isLoading = false;
+        if (this.loadingMessage) {
+          this.loadingMessage.style.display = "none";
+          this.loadingMessage.classList.remove("is-loading");
         }
-      }
-      if (this.api?.resourceReady) this.api?.resourceReady();
-      this.emit("resource.ready");
+        if (this.view?.layout !== "fixed") {
+          if (this.view?.atStart() && this.view?.atEnd()) {
+            if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
+            this.emit("resource.fits");
+          } else if (this.view?.atEnd()) {
+            if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
+            this.emit("resource.end");
+          } else if (this.view?.atStart()) {
+            if (this.api?.resourceAtStart) this.api?.resourceAtStart();
+            this.emit("resource.start");
+          }
+        }
+        if (this.api?.resourceReady) this.api?.resourceReady();
+        this.emit("resource.ready");
+    }, 150);
   }
 
   private saveCurrentReadingPosition() {
