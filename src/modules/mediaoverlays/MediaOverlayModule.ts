@@ -123,9 +123,6 @@ export class MediaOverlayModule implements ReaderModule {
         this.audioElement.volume = this.settings.volume;
         this.audioElement.playbackRate = this.settings.rate;
       });
-
-      this.setupMediaOverlayClickHandlers();
-
       resolve();
     });
   }
@@ -181,8 +178,6 @@ export class MediaOverlayModule implements ReaderModule {
         link.MediaOverlays,
         undefined
       );
-
-      this.setupMediaOverlayClickHandlers();
     } else {
       if (this.audioElement) {
         await this.audioElement.pause();
@@ -866,121 +861,5 @@ export class MediaOverlayModule implements ReaderModule {
         behavior: "smooth",
       });
     }
-  }
-
-  private setupMediaOverlayClickHandlers() {
-    const handleClickOnMediaOverlay = async (event: MouseEvent) => {
-      if (!this.navigator.rights.enableMediaOverlays) {
-        return;
-      }
-
-      const target = event.target as HTMLElement;
-
-      // Check if the clicked element or any of its parents has a media overlay ID
-      let currentElement: HTMLElement | null = target;
-      while (currentElement) {
-        // Look for elements that would be highlighted during media overlay playback
-        if (currentElement.id) {
-          // Stop current playback if any
-          if (this.audioElement) {
-            this.audioElement.pause();
-          }
-
-          // If we have a mediaOverlayRoot, we can try to find the corresponding media overlay
-          if (this.mediaOverlayRoot) {
-            // Find the media overlay node corresponding to the clicked element
-            const clickedOverlay = this.findMediaOverlayNodeById(
-              this.mediaOverlayRoot,
-              currentElement.id
-            );
-
-            if (clickedOverlay) {
-              log.log("Found matching media overlay node, playing it");
-
-              // Update the current media overlay text/audio pair
-              this.mediaOverlayTextAudioPair = clickedOverlay;
-
-              // Play this media overlay
-              await this.playMediaOverlaysAudio(
-                clickedOverlay,
-                undefined,
-                undefined
-              );
-              return;
-            }
-          }
-
-          // If we couldn't find the exact node but have an ID, we can try with document and ID
-          if (this.mediaOverlayRoot) {
-            const hrefUrlObj = new URL(
-              "https://dita.digital/" +
-                this.currentLinks[this.currentLinkIndex]?.HrefDecoded
-            );
-            const textHref = hrefUrlObj.pathname.substr(1);
-
-            // Try to find a media overlay with this ID in our current structure
-            this.playMediaOverlays(textHref, this.mediaOverlayRoot, [
-              currentElement.id,
-            ]);
-            return;
-          }
-        }
-
-        currentElement = currentElement.parentElement;
-      }
-    };
-
-    // Add click handlers to both iframes
-    if (this.navigator.iframes && this.navigator.iframes.length > 0) {
-      // First iframe (main content)
-      try {
-        const contentDoc = this.navigator.iframes[0].contentDocument;
-        if (contentDoc) {
-          contentDoc.removeEventListener("click", handleClickOnMediaOverlay); // Remove any existing handler
-          contentDoc.addEventListener("click", handleClickOnMediaOverlay);
-        }
-      } catch (e) {
-        log.error("Error attaching click handler to first iframe:", e);
-      }
-
-      // Second iframe (if exists, used for spread view or other content)
-      if (this.navigator.iframes.length > 1) {
-        try {
-          const contentDoc = this.navigator.iframes[1].contentDocument;
-          if (contentDoc) {
-            contentDoc.removeEventListener("click", handleClickOnMediaOverlay); // Remove any existing handler
-            contentDoc.addEventListener("click", handleClickOnMediaOverlay);
-          }
-        } catch (e) {
-          log.error("Error attaching click handler to second iframe:", e);
-        }
-      }
-    }
-  }
-
-  // Find a media overlay node by ID
-  private findMediaOverlayNodeById(
-    node: MediaOverlayNode,
-    id: string
-  ): MediaOverlayNode | undefined {
-    // Check if this node matches the ID
-    if (node.Text) {
-      const hrefUrlObj = new URL("https://dita.digital/" + node.Text);
-      if (hrefUrlObj.hash && hrefUrlObj.hash.substr(1) === id) {
-        return node;
-      }
-    }
-
-    // Recursively check children
-    if (node.Children && node.Children.length > 0) {
-      for (const child of node.Children) {
-        const match = this.findMediaOverlayNodeById(child, id);
-        if (match) {
-          return match;
-        }
-      }
-    }
-
-    return undefined;
   }
 }
