@@ -629,14 +629,14 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             secondSpread.appendChild(this.iframes[1]);
             this.firstSpread.style.clipPath =
               "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
-            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";  
+            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
             secondSpread.style.clipPath =
               "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
-            secondSpread.style.boxShadow = "0 0 8px 2px #ccc";    
+            secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
           } else {
             this.firstSpread.style.clipPath =
               "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
-            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";  
+            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
           }
         } else {
           this.iframes[0].style.paddingTop =
@@ -2597,7 +2597,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         }
         this.firstSpread.style.clipPath =
           "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
-        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";       
+        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
       }
       this.precessContentForIframe();
     }
