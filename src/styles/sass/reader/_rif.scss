@@ -1,0 +1,148 @@
+:root {
+  --sw: calc(83%);
+}
+
+main {
+  >div {
+    perspective: 300px;
+    position: relative;
+    --flip-amount: 180deg;
+
+    &:has(iframe[src="about:blank"]) {
+      > div::after {
+        opacity: 0;
+      }
+    }
+  }
+
+  > div > div {
+    position: relative;
+    aspect-ratio: 1;
+    perspective: 1000px;
+  
+    &:has(iframe[src="about:blank"]) {
+      box-shadow: none !important;
+      // clip-path: unset !important;
+
+      iframe {
+        box-shadow: none !important;
+      } 
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -32px;
+      width: 64px;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgb(67 67 67 / 35%) 50%, rgba(255, 255, 255, 0) 100%);
+      z-index: 4;
+    }
+
+    &:first-child {
+      &::after {
+        left: unset;
+        right: -32px;
+      }
+    }
+
+    #iframe-wrapper {
+      perspective: 1200px; 
+    }
+    
+    iframe {
+      transform-style: preserve-3d;
+      position: absolute;
+      box-shadow: rgb(204, 204, 204) 0px 0px 8px 2px;
+      overflow: hidden;
+    }
+    
+    .iframe-clone {
+      z-index: 2;
+    }
+    
+    .flip-next {
+      transform-origin: left center; 
+      transform: rotateY(-180deg); 
+    
+      &.page-back {
+        transform-origin: right;
+        animation: nextBack 0.7s ease-in-out forwards;
+        transform: rotateY(var(--flip-amount));
+      }
+    
+      &.page-front {
+        z-index: 5;
+        transform-origin: left;
+        transform: rotateY(0deg);
+        animation: nextFront 0.7s ease-in-out forwards;
+      }
+    }
+    
+    .flip-prev {
+      transform-origin: right center; 
+      transform: rotateY(180deg); 
+    
+      &.page-back {
+        z-index: 4;
+        transform-origin: left;
+        animation: prevBack 0.7s ease-in-out forwards;
+        transform: rotateY(0deg) translateX(2px);
+        border-left: 2px solid rgba(67, 67, 67, 0.35);
+      }
+    
+      &.page-front {
+        z-index: 5;
+        transform-origin: right;
+        transform: rotateY(var(--flip-amount)) translateX(2px);
+        animation: prevFront 0.7s ease-in-out forwards;
+        border-right: 2px solid rgba(67, 67, 67, 0.35);
+      }
+    }
+    
+    .page-back {
+      z-index: 3;
+    }
+    
+    .page-front {
+      z-index: 4; 
+    }
+  }
+}
+
+@keyframes nextFront {
+  from {
+    transform: rotateY(0deg)
+  }
+  to {
+    transform: rotateY(calc(0deg - var(--flip-amount))) translateX(-1px);
+  }
+}
+
+@keyframes nextBack {
+  from {
+    transform: rotateY(180deg) translateX(0px);
+  }
+  to {
+    transform: rotateY(0deg) translateX(0px);
+  }
+}
+
+@keyframes prevFront {
+  from {
+    transform: rotateY(0deg) translateX(0px);
+  }
+  to {
+    transform: rotateY(180deg) translateX(0px);
+  }
+}
+
+@keyframes prevBack {
+  from {
+    transform: rotateY(calc(0deg - var(--flip-amount)));
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
