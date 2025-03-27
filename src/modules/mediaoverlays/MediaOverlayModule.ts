@@ -873,11 +873,6 @@ export class MediaOverlayModule implements ReaderModule {
         if (currentElement.id) {
           log.log(`Found element with ID: ${currentElement.id}`);
 
-          // Stop current playback if any
-          if (this.audioElement) {
-            this.audioElement.pause();
-          }
-
           // Search through both links in currentLinks
           for (let i = 0; i < this.currentLinks.length; i++) {
             const link = this.currentLinks[i];
@@ -918,6 +913,11 @@ export class MediaOverlayModule implements ReaderModule {
               );
               if (foundNode) {
                 log.log(`Found media overlay in link ${i}`);
+                // Stop current playback if any
+                if (this.audioElement) {
+                  this.audioElement.pause();
+                }
+
                 this.currentLinkIndex = i;
                 this.mediaOverlayRoot = link.MediaOverlays;
                 this.mediaOverlayTextAudioPair = foundNode;
@@ -959,6 +959,10 @@ export class MediaOverlayModule implements ReaderModule {
     node: MediaOverlayNode,
     id: string
   ): MediaOverlayNode | undefined {
+    // Return if the id doesn't start with obj. This is to prevent the module from returning non-media overlay nodes.
+    if (!id.startsWith("obj")) {
+      return undefined;
+    }
     // Check if this node matches the ID
     if (node.Text) {
       const hrefUrlObj = new URL("https://dita.digital/" + node.Text);
