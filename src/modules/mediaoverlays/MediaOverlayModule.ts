@@ -123,14 +123,12 @@ export class MediaOverlayModule implements ReaderModule {
         this.audioElement.volume = this.settings.volume;
         this.audioElement.playbackRate = this.settings.rate;
       });
-
-      this.setupMediaOverlayClickHandlers();
-
       resolve();
     });
   }
 
   async initializeResource(links: Array<Link | undefined>) {
+    this.setupMediaOverlayClickHandlers();
     this.currentLinks = links;
     this.currentLinkIndex = 0;
     await this.playLink();
@@ -181,8 +179,6 @@ export class MediaOverlayModule implements ReaderModule {
         link.MediaOverlays,
         undefined
       );
-
-      this.setupMediaOverlayClickHandlers();
     } else {
       if (this.audioElement) {
         await this.audioElement.pause();
@@ -827,31 +823,27 @@ export class MediaOverlayModule implements ReaderModule {
             : R2_MO_CLASS_ACTIVE;
     }
 
-    if (this.pid) {
-      let prevElement;
-
-      if (this.currentLinkIndex === 0) {
-        prevElement = this.navigator.iframes[0].contentDocument?.getElementById(
-          this.pid
-        );
-      } else {
-        prevElement = this.navigator.iframes[1].contentDocument?.getElementById(
-          this.pid
-        );
+    // Savas: Remove classActive from all elements in both iframes. Previously this only worked on the first iframe.
+    this.navigator.iframes.forEach((iframe) => {
+      const doc = iframe.contentDocument;
+      if (doc) {
+        doc.querySelectorAll(`.${classActive}`).forEach((el) => {
+          // Only remove if it doesn't match the new id (if provided)
+          if (el.id !== id) {
+            el.classList.remove(classActive);
+          }
+        });
       }
-
-      if (prevElement) {
-        prevElement.classList.remove(classActive);
-      }
-    }
+    });
 
     let current;
+
     if (id) {
-      if (this.currentLinkIndex === 0) {
-        current = this.navigator.iframes[0].contentDocument?.getElementById(id);
-      } else {
-        current = this.navigator.iframes[1].contentDocument?.getElementById(id);
-      }
+      const activeIframe =
+        this.currentLinkIndex === 0
+          ? this.navigator.iframes[0]
+          : this.navigator.iframes[1];
+      current = activeIframe.contentDocument?.getElementById(id);
       if (current) {
         current.classList.add(classActive);
       }
@@ -875,87 +867,91 @@ export class MediaOverlayModule implements ReaderModule {
       }
 
       const target = event.target as HTMLElement;
-
-      // Check if the clicked element or any of its parents has a media overlay ID
       let currentElement: HTMLElement | null = target;
+
       while (currentElement) {
-        // Look for elements that would be highlighted during media overlay playback
         if (currentElement.id) {
-          // Stop current playback if any
-          if (this.audioElement) {
-            this.audioElement.pause();
-          }
+          log.log(`Found element with ID: ${currentElement.id}`);
 
-          // If we have a mediaOverlayRoot, we can try to find the corresponding media overlay
-          if (this.mediaOverlayRoot) {
-            // Find the media overlay node corresponding to the clicked element
-            const clickedOverlay = this.findMediaOverlayNodeById(
-              this.mediaOverlayRoot,
-              currentElement.id
-            );
+          // Search through both links in currentLinks
+          for (let i = 0; i < this.currentLinks.length; i++) {
+            const link = this.currentLinks[i];
 
-            if (clickedOverlay) {
-              log.log("Found matching media overlay node, playing it");
+            // Initialize media overlay if needed
+            if (
+              link?.Properties?.MediaOverlay &&
+              !link.MediaOverlays?.initialized
+            ) {
+              try {
+                const moUrl = link.Properties.MediaOverlay;
+                const moUrlObjFull = new URL(
+                  moUrl,
+                  this.publication.manifestUrl
+                );
+                const response = await fetch(
+                  moUrlObjFull.toString(),
+                  this.navigator.requestConfig
+                );
+                const moJson = await response.json();
 
-              // Update the current media overlay text/audio pair
-              this.mediaOverlayTextAudioPair = clickedOverlay;
+                link.MediaOverlays = TaJsonDeserialize<MediaOverlayNode>(
+                  moJson,
+                  MediaOverlayNode
+                );
+                link.MediaOverlays.initialized = true;
+              } catch (err) {
+                log.error(`Error fetching media overlay:`, err);
+                continue;
+              }
+            }
 
-              // Play this media overlay
-              await this.playMediaOverlaysAudio(
-                clickedOverlay,
-                undefined,
-                undefined
+            // Search for the ID in this link's media overlay
+            if (link?.MediaOverlays) {
+              const foundNode = this.findMediaOverlayNodeById(
+                link.MediaOverlays,
+                currentElement.id
               );
-              return;
+              if (foundNode) {
+                log.log(`Found media overlay in link ${i}`);
+                // Stop current playback if any
+                if (this.audioElement) {
+                  this.audioElement.pause();
+                }
+
+                this.currentLinkIndex = i;
+                this.mediaOverlayRoot = link.MediaOverlays;
+                this.mediaOverlayTextAudioPair = foundNode;
+                await this.playMediaOverlaysAudio(
+                  foundNode,
+                  undefined,
+                  undefined
+                );
+                return;
+              }
             }
           }
 
-          // If we couldn't find the exact node but have an ID, we can try with document and ID
-          if (this.mediaOverlayRoot) {
-            const hrefUrlObj = new URL(
-              "https://dita.digital/" +
-                this.currentLinks[this.currentLinkIndex]?.HrefDecoded
-            );
-            const textHref = hrefUrlObj.pathname.substr(1);
-
-            // Try to find a media overlay with this ID in our current structure
-            this.playMediaOverlays(textHref, this.mediaOverlayRoot, [
-              currentElement.id,
-            ]);
-            return;
-          }
+          log.log(
+            `No media overlay found for ID ${currentElement.id} in current links`
+          );
+          return;
         }
-
         currentElement = currentElement.parentElement;
       }
     };
 
-    // Add click handlers to both iframes
-    if (this.navigator.iframes && this.navigator.iframes.length > 0) {
-      // First iframe (main content)
+    // Add click handlers to all iframes
+    this.navigator.iframes?.forEach((iframe) => {
       try {
-        const contentDoc = this.navigator.iframes[0].contentDocument;
+        const contentDoc = iframe.contentDocument;
         if (contentDoc) {
-          contentDoc.removeEventListener("click", handleClickOnMediaOverlay); // Remove any existing handler
+          contentDoc.removeEventListener("click", handleClickOnMediaOverlay);
           contentDoc.addEventListener("click", handleClickOnMediaOverlay);
         }
       } catch (e) {
-        log.error("Error attaching click handler to first iframe:", e);
+        console.error("Error attaching click handler to iframe:", e);
       }
-
-      // Second iframe (if exists, used for spread view or other content)
-      if (this.navigator.iframes.length > 1) {
-        try {
-          const contentDoc = this.navigator.iframes[1].contentDocument;
-          if (contentDoc) {
-            contentDoc.removeEventListener("click", handleClickOnMediaOverlay); // Remove any existing handler
-            contentDoc.addEventListener("click", handleClickOnMediaOverlay);
-          }
-        } catch (e) {
-          log.error("Error attaching click handler to second iframe:", e);
-        }
-      }
-    }
+    });
   }
 
   // Find a media overlay node by ID
@@ -963,6 +959,10 @@ export class MediaOverlayModule implements ReaderModule {
     node: MediaOverlayNode,
     id: string
   ): MediaOverlayNode | undefined {
+    // Return if the id doesn't start with obj. This is to prevent the module from returning non-media overlay nodes.
+    if (!id.startsWith("obj")) {
+      return undefined;
+    }
     // Check if this node matches the ID
     if (node.Text) {
       const hrefUrlObj = new URL("https://dita.digital/" + node.Text);
