@@ -5,15 +5,16 @@
 # R2D2BC
 
 # Introduction
+
 **R2D2BC** is an implementation of the [Readium v2](https://github.com/readium/architecture) EPUB reader for the web.
-It is built as a modular toolkit (rather than a full-featured app) so that applications can use it to 
+It is built as a modular toolkit (rather than a full-featured app) so that applications can use it to
 handle the EPUB-related functions while customizing the own design, user interface, and extensions.
 
 # Goals
 
 - Follow the Readium architecture specification for best interoperability
 - Allow maximum configurability via API methods, callbacks, code and style injection, and clear separation of functions.
-- Modularity 
+- Modularity
 - Clarity of code and ease of maintenance
 - Speed
 - Accessibility
@@ -36,6 +37,7 @@ This project implements most components of the [Readium Architecture](https://gi
 - Integrates a simple Navigator for reflowable publications
 
 Additionally, it:
+
 - Provides a decoupled Minimal UI
 - Provides build system optimization (Webpack)
 
@@ -47,6 +49,7 @@ Here is the original proposal, initiated by Aferdita Muriqi to the
 Subsequent development of R2D2BC has been supported by [DITA](https://github.com/d-i-t-a), [Bokbasen](https://www.bokbasen.no/), and [CAST](http://www.cast.org) - which explains the D2, B, and C in the name.
 
 # Features & Functionalities
+
 - ePub Reflowable + Fixed Layout
 - Reader Settings
 - Configurable Modules with Callbacks
@@ -71,21 +74,22 @@ Subsequent development of R2D2BC has been supported by [DITA](https://github.com
 # Extensions and Implementations
 
 The R2D2BC reader has been used in:
+
 - The [Clusive](https://github.com/cast-org/clusive) learning environment
-- Bokbasen's [Allbok.no](https://www.allbok.no) 
+- Bokbasen's [Allbok.no](https://www.allbok.no)
 - Allvir's [Allvit.no](https://www.allvit.no) Reading Platform
 - The UNODC [Fieldguides](https://fieldguides.github.io/library)
 - The DITA Gateway [D2G](https://d2g.dita.digital) with several open collections
 - [Ekitabu's](https://d2g.dita.digital) Web Reader Implementations through Dita Gateway
 - [NYPL's](https://www.nypl.org/) Web Reader Implementations
 - Bibliotheca's [CloudLibrary](https://www.yourcloudlibrary.com) as Sample Reader and Full ePub Reader
-- Above the Treeline's [Edeweiss+](https://www.edelweiss.plus) 
+- Above the Treeline's [Edeweiss+](https://www.edelweiss.plus)
 - [Bluefire's](https://www.bluefirereader.com) Web Reader Implementations
 - In a Project in the Meta Verse (to be named once public)
-- and a few more... :) 
-
+- and a few more... :)
 
 # Contributing
+
 Contributions are always welcomed! Please see [CONTRIBUTING](CONTRIBUTING.md) for detailed guidelines.
 
 [![DepShield Badge](https://depshield.sonatype.org/badges/d-i-t-a/R2D2BC/depshield.svg)](https://depshield.github.io)
@@ -99,15 +103,21 @@ npm install
 
 npm run build && npm run examples
 ```
+
 Then visit `http://localhost:4444/`. Follow the prompts to view example apps.
 
 ### WIKI
+
 - [Implementation Guides and Examples](https://github.com/d-i-t-a/R2D2BC/wiki)
 
 ### Migration Guides
+
 - [Version 1.x -> 2.x](MIGRATION.md)
+
 ### Change Log
+
 - [2.0.x](CHANGELOG.md)
 
 ## Supporters
+
 [<img src="https://dita.digital/jetbrains.png" width="60">](https://www.jetbrains.com/?from=R2D2BC)
