@@ -1620,7 +1620,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         // Create a duplicate iframe
         const iframeClone = iframe.cloneNode(true) as HTMLIFrameElement;
         iframeClone.classList.add("iframe-clone");
-  
+
         // Append the clone to the parent container
         iframe.parentElement?.appendChild(iframeClone);
       }
@@ -2174,7 +2174,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             }
           }
         }
-  
+
         var iframeParent =
           index === 0 && this.iframes.length === 2
             ? this.iframes[1].parentElement?.parentElement
@@ -2843,8 +2843,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const prevPage2 = this.iframes[1];
 
     if (this.hasValidIframeSibling(prevPage2)) {
-      clone1.classList.add('flip-prev', 'page-front');
-      prevPage2.classList.add('flip-prev', 'page-back');
+      clone1.classList.add("flip-prev", "page-front");
+      prevPage2.classList.add("flip-prev", "page-back");
     }
   }
 
@@ -2896,37 +2896,67 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   // Savas: Adds HTML classes to pages to trigger animations
   private flipNext(): void {
     const clones = this.searchForClones();
+    console.log("clones", clones);
     const clone2 = clones[1];
     const nextPage1 = this.iframes[0];
 
     if (this.hasValidIframeSibling(nextPage1)) {
-      clone2.classList.add('flip-next', 'page-front');
-      nextPage1.classList.add('flip-next', 'page-back');
+      console.log({ clone2, nextPage1 });
+      clone2.classList.add("flip-next", "page-front");
+      nextPage1.classList.add("flip-next", "page-back");
     }
   }
 
   // Savas: checks to see if there's a sibling iframe page to prevent page flip animation
-  private hasValidIframeSibling(page) {
-    let parentDiv = page.closest('div');
-    
-    if (!parentDiv) return false;
-    let siblingDivs = [...parentDiv.parentElement.children].filter(el => el !== parentDiv);
+  private hasValidIframeSibling(page: HTMLElement): boolean {
+    try {
+      console.log("page props to hasValidIframeSibling", page);
+      if (!page || !(page instanceof HTMLElement)) {
+        console.warn("Invalid page element provided to hasValidIframeSibling");
+        return false;
+      }
 
-    return siblingDivs.some(sibling => {
-      let iframe = sibling.querySelector('iframe');
-      return iframe && iframe.src && iframe.src !== 'about:blank';
-    });
+      const parentDiv = page.closest("div");
+      if (!parentDiv || !parentDiv.parentElement) {
+        console.log("no parent div", parentDiv, page);
+        return false;
+      }
+
+      const siblingDivs = Array.from(parentDiv.parentElement.children).filter(
+        (el) => el !== parentDiv && el instanceof HTMLElement
+      );
+
+      return siblingDivs.some((sibling) => {
+        const iframe = sibling.querySelector("iframe");
+        console.log("sibling.querySelector(iframe);", iframe);
+        return true;
+      });
+    } catch (error) {
+      console.error("Error checking for valid iframe sibling:", error);
+      return false;
+    }
   }
 
   // Savas: utility for checking for cloned iframes
   private searchForClones() {
-    return document.querySelectorAll('.iframe-clone');
+    // Add error handling and ensure we're getting valid elements
+    try {
+      const clones = document.querySelectorAll(".iframe-clone");
+      if (!clones || clones.length === 0) {
+        console.warn("No iframe clones found");
+        return [];
+      }
+      return Array.from(clones).filter((el) => el instanceof HTMLElement);
+    } catch (error) {
+      console.error("Error searching for iframe clones:", error);
+      return [];
+    }
   }
 
   // Savas: removes iframe clones and removes animation classes from remaining iframes
   private resetIframes() {
     const clones = this.searchForClones();
-    clones.forEach(clone => clone.remove());
+    clones.forEach((clone) => clone.remove());
 
     this.iframes.forEach((iframe) => {
       iframe.classList.remove(...iframe.classList);
@@ -3152,7 +3182,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         }
 
         // Savas: remove loading screen when triggering page animation
-        if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
+        if (
+          !(this.view?.layout === "fixed" && this.settings.columnCount !== 1)
+        ) {
           this.hideIframeContents();
           this.showLoadingMessageAfterDelay();
         }
@@ -3295,7 +3327,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         iframe.style.opacity = "1";
         iframe.style.border = "none";
         iframe.style.overflow = "hidden";
-        
+
         // Savas: delete cloned iframes and remove animation classes if they exist
         this.resetIframes();
       }
