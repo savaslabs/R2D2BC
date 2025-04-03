@@ -1,10 +1,17 @@
+$pageAnimation: 2.3s;
+$pageTweening: ease-in-out; 
+
+$perspective1: 800px;
+$perspective2: 12000px;
+$perspective3: 1500px;
+
 :root {
   --sw: calc(83%);
 }
 
 main {
-  >div {
-    perspective: 300px;
+  > div {
+    perspective: $perspective1;
     position: relative;
     --flip-amount: 180deg;
 
@@ -15,10 +22,11 @@ main {
     }
   }
 
+  iframe  { opacity: 0.5; }
+
   > div > div {
     position: relative;
-    aspect-ratio: 1;
-    perspective: 1000px;
+    perspective: $perspective2;
   
     &:has(iframe[src="about:blank"]) {
       box-shadow: none !important;
@@ -48,7 +56,7 @@ main {
     }
 
     #iframe-wrapper {
-      perspective: 1200px; 
+      perspective: $perspective3; 
     }
     
     iframe {
@@ -56,6 +64,7 @@ main {
       position: absolute;
       box-shadow: rgb(204, 204, 204) 0px 0px 8px 2px;
       overflow: hidden;
+      backface-visibility: hidden; // Added for smoother flipping
     }
     
     .iframe-clone {
@@ -65,10 +74,11 @@ main {
     .flip-next {
       transform-origin: left center; 
       transform: rotateY(-180deg); 
+      backface-visibility: hidden; // Added for smoother flipping
     
       &.page-back {
         transform-origin: right;
-        animation: nextBack 0.7s ease-in-out forwards;
+        animation: nextBack $pageAnimation $pageTweening forwards;
         transform: rotateY(var(--flip-amount));
       }
     
@@ -76,18 +86,19 @@ main {
         z-index: 5;
         transform-origin: left;
         transform: rotateY(0deg);
-        animation: nextFront 0.7s ease-in-out forwards;
+        animation: nextFront $pageAnimation $pageTweening forwards;
       }
     }
     
     .flip-prev {
       transform-origin: right center; 
       transform: rotateY(180deg); 
+      backface-visibility: hidden; // Added for smoother flipping
     
       &.page-back {
         z-index: 4;
         transform-origin: left;
-        animation: prevBack 0.7s ease-in-out forwards;
+        animation: prevBack $pageAnimation $pageTweening forwards;
         transform: rotateY(0deg) translateX(2px);
         border-left: 2px solid rgba(67, 67, 67, 0.35);
       }
@@ -96,7 +107,7 @@ main {
         z-index: 5;
         transform-origin: right;
         transform: rotateY(var(--flip-amount)) translateX(2px);
-        animation: prevFront 0.7s ease-in-out forwards;
+        animation: prevFront $pageAnimation $pageTweening forwards;
         border-right: 2px solid rgba(67, 67, 67, 0.35);
       }
     }
@@ -113,36 +124,52 @@ main {
 
 @keyframes nextFront {
   from {
-    transform: rotateY(0deg)
+    transform: rotateY(0deg) scale(1);
+    box-shadow: none;
+  }
+  50% {
+    transform: rotateY(-90deg) scale(0.98); // Slight scaling for realism
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
   }
   to {
-    transform: rotateY(calc(0deg - var(--flip-amount))) translateX(-1px);
+    transform: rotateY(calc(0deg - var(--flip-amount))) translateX(-1px) scale(1);
+    box-shadow: none;
   }
 }
 
 @keyframes nextBack {
   from {
-    transform: rotateY(180deg) translateX(0px);
+    transform: rotateY(180deg) translateX(0px) scale(1);
+    box-shadow: none;
+  }
+  50% {
+    transform: rotateY(90deg) translateX(0px) scale(0.98);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
   }
   to {
-    transform: rotateY(0deg) translateX(0px);
+    transform: rotateY(0deg) translateX(0px) scale(1);
+    box-shadow: none;
   }
 }
 
 @keyframes prevFront {
   from {
-    transform: rotateY(0deg) translateX(0px);
+    transform: rotateY(0deg);
+    box-shadow: none;
   }
   to {
-    transform: rotateY(180deg) translateX(0px);
+    transform: rotateY(180deg);
+    box-shadow: none;
   }
 }
 
 @keyframes prevBack {
   from {
     transform: rotateY(calc(0deg - var(--flip-amount)));
+    box-shadow: none;
   }
   to {
     transform: rotateY(0deg);
+    box-shadow: none;
   }
 }
