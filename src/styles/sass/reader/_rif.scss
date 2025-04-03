@@ -1,7 +1,7 @@
 $pageAnimation: 2.3s;
 $pageTweening: ease-in-out; 
 
-$perspective1: 800px;
+$perspectiveBothPages: 2800px;
 $perspective2: 12000px;
 $perspective3: 1500px;
 
@@ -9,12 +9,45 @@ $perspective3: 1500px;
   --sw: calc(83%);
 }
 
+.page-holder.flipping-page { 
+  transform-origin: top left;
+}
+
+
+#iframe-wrapper {
+  // THIS HOLDS BOTH PAGES
+  > div:last-child {
+    position: relative;
+    perspective: $perspectiveBothPages;
+    transform: translateX(100px);
+
+    // FIRST BOOK PAGE
+    > div:first-child {
+      transform: translateX(-623px);
+      iframe { }
+
+    }
+
+    // SECOND BOOK PAGE
+    > div:last-child {
+
+      
+      // animation-name: nextFront;
+      // animation-duration: 2.635s;
+      // animation-iteration-count: infinite;
+      // animation-timing-function: ease-in-out;
+      // transform-origin: center left;
+
+      iframe { }
+
+      
+    }
+  }
+}
+
 main {
   > div {
-    perspective: $perspective1;
-    position: relative;
     --flip-amount: 180deg;
-
     &:has(iframe[src="about:blank"]) {
       > div::after {
         opacity: 0;

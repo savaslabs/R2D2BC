@@ -323,6 +323,13 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   requestConfig?: RequestConfig;
   private didInitKeyboardEventHandler: boolean = false;
 
+  // SAVAS
+  isPageFlippingRequested: boolean = false;
+  isTheLeftPageCloned: boolean = false;
+  isTheRightPageCloned: boolean = false;
+  cloneOfTheLeftPage: HTMLElement | undefined;
+  cloneOfTheRightPage: HTMLElement | undefined;
+
   public static async create(
     config: IFrameNavigatorConfig
   ): Promise<IFrameNavigator> {
@@ -1375,10 +1382,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   private async handleIFrameLoad(iframe: HTMLIFrameElement): Promise<void> {
     if (this.errorMessage) this.errorMessage.style.display = "none";
-    // Savas: remove loading screen when triggering page animation
-    if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
-      this.showLoadingMessageAfterDelay();
-    }
+    this.showLoadingMessageAfterDelay();
     try {
       let bookViewPosition: number | undefined = 0;
       if (this.newPosition) {
@@ -1548,14 +1552,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         await this.timelineModule.initialize();
       }
 
-      if (
-        this.rights.enableMediaOverlays &&
-        this.mediaOverlayModule &&
-        this.hasMediaOverlays
-      ) {
-        await this.mediaOverlayModule.initialize();
-      }
-
       setTimeout(async () => {
         if (this.newElementId) {
           const element = (iframe.contentDocument as any).getElementById(
@@ -1584,6 +1580,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           }
         }
 
+        if (this.isPageFlippingRequested) {
+          alert("I THINK IT'S LOADED");
+          //this.cloneCurrentPage("left");
+          this.isPageFlippingRequested = false;
+        }
         this.hideLoadingMessage();
         this.showIframeContents(iframe);
 
@@ -1597,7 +1598,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         }
         await this.updatePositionInfo();
         await this.view?.setSize();
-
         setTimeout(() => {
           if (this.mediaOverlayModule) {
             this.mediaOverlayModule.settings.resourceReady = true;
@@ -1610,22 +1610,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       log.error(err);
       this.abortOnError(err);
       return Promise.reject(err);
-    }
-  }
-
-  // Savas: creates a clone of the iframes in order to trigger the animation over top of new pages
-  private cloneIFrames() {
-    try {
-      for (const iframe of this.iframes) {
-        // Create a duplicate iframe
-        const iframeClone = iframe.cloneNode(true) as HTMLIFrameElement;
-        iframeClone.classList.add("iframe-clone");
-  
-        // Append the clone to the parent container
-        iframe.parentElement?.appendChild(iframeClone);
-      }
-    } catch (error) {
-      console.error("Failed to capture iframe duplication:", error);
     }
   }
 
@@ -1748,10 +1732,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const self = this;
     var index = this.publication.getSpineIndex(this.currentChapterLink.href);
     var even: boolean = (index ?? 0) % 2 === 1;
-    // Savas: remove loading screen when triggering page animation
-    if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
-      this.showLoadingMessageAfterDelay();
-    }
+    this.showLoadingMessageAfterDelay();
 
     this.currentSpreadLinks = {};
 
@@ -2174,7 +2155,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             }
           }
         }
-  
+
         var iframeParent =
           index === 0 && this.iframes.length === 2
             ? this.iframes[1].parentElement?.parentElement
@@ -2195,8 +2176,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             iframe.style.width = width;
             if (iframe.parentElement) {
               iframe.parentElement.style.height = height;
-              // Savas: we need to add this width style inline to allow the absolute positioned iframes to take up horizontal space
-              iframe.parentElement.style.width = width;
             }
           }
         }
@@ -2795,8 +2774,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
-      // Savas: clones ifames if there are multiple page columns
-      this.cloneIFrames();
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
       index = index - 2;
@@ -2812,8 +2789,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       };
 
       this.stopReadAloud();
-      // Savas: Adds flipping animation if there are multiple page columns
-      this.flipPrev();
       this.navigate(position, false);
     } else {
       if (this.previousChapterLink) {
@@ -2836,24 +2811,15 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
-  // Savas: Adds HTML classes to pages to trigger animations
-  private flipPrev(): void {
-    const clones = this.searchForClones();
-    const clone1 = clones[0];
-    const prevPage2 = this.iframes[1];
-
-    if (this.hasValidIframeSibling(prevPage2)) {
-      clone1.classList.add('flip-prev', 'page-front');
-      prevPage2.classList.add('flip-prev', 'page-back');
-    }
-  }
-
   private handleNextChapterClick(
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
-      // Savas: clones ifames if there are multiple page columns
-      this.cloneIFrames();
+      this.isPageFlippingRequested = true;
+
+      alert("yeah hi whassup");
+      this.cloneCurrentPage("right");
+
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
       index = index + 2;
@@ -2868,11 +2834,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         type: next.TypeLink,
         title: next.Title,
       };
-
       this.stopReadAloud();
-      // Savas: Adds flipping animation if there are multiple page columns
-      this.flipNext();
       this.navigate(position, false);
+      alert("yeah all done.");
     } else {
       if (this.nextChapterLink) {
         const position: Locator = {
@@ -2891,46 +2855,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       event.preventDefault();
       event.stopPropagation();
     }
-  }
-
-  // Savas: Adds HTML classes to pages to trigger animations
-  private flipNext(): void {
-    const clones = this.searchForClones();
-    const clone2 = clones[1];
-    const nextPage1 = this.iframes[0];
-
-    if (this.hasValidIframeSibling(nextPage1)) {
-      clone2.classList.add('flip-next', 'page-front');
-      nextPage1.classList.add('flip-next', 'page-back');
-    }
-  }
-
-  // Savas: checks to see if there's a sibling iframe page to prevent page flip animation
-  private hasValidIframeSibling(page) {
-    let parentDiv = page.closest('div');
-    
-    if (!parentDiv) return false;
-    let siblingDivs = [...parentDiv.parentElement.children].filter(el => el !== parentDiv);
-
-    return siblingDivs.some(sibling => {
-      let iframe = sibling.querySelector('iframe');
-      return iframe && iframe.src && iframe.src !== 'about:blank';
-    });
-  }
-
-  // Savas: utility for checking for cloned iframes
-  private searchForClones() {
-    return document.querySelectorAll('.iframe-clone');
-  }
-
-  // Savas: removes iframe clones and removes animation classes from remaining iframes
-  private resetIframes() {
-    const clones = this.searchForClones();
-    clones.forEach(clone => clone.remove());
-
-    this.iframes.forEach((iframe) => {
-      iframe.classList.remove(...iframe.classList);
-    });
   }
 
   private handleKeydownFallthrough(event: KeyDownEvent | undefined): void {
@@ -3151,11 +3075,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.currentChapterLink.href + "#" + this.newElementId;
         }
 
-        // Savas: remove loading screen when triggering page animation
-        if (!(this.view?.layout === "fixed" && this.settings.columnCount !== 1)) {
-          this.hideIframeContents();
-          this.showLoadingMessageAfterDelay();
-        }
+        this.hideIframeContents();
+        this.showLoadingMessageAfterDelay();
         if (locator.locations === undefined) {
           locator.locations = {
             progression: 0,
@@ -3295,10 +3216,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         iframe.style.opacity = "1";
         iframe.style.border = "none";
         iframe.style.overflow = "hidden";
-        // Savas: delete cloned iframes and remove animation classes if they exist
-        this.resetIframes();
       }
-    }, 2150);
+    }, 150);
   }
 
   private showLoadingMessageAfterDelay() {
@@ -3574,5 +3493,93 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         container.style.display = "none";
       }
     }
+  }
+
+  createPageFlipper() {}
+
+  removePageFlipper() {
+    const pageFlipper = document.getElementById("FlippingPage");
+    if (pageFlipper) {
+      pageFlipper.remove();
+    }
+  }
+
+  /**
+   * Clones the current page (left or right), applies the scale from the parent div,
+   * and appends it before the last div in the main iframe wrapper.
+   * @param side - The side to clone ('left' or 'right').
+   */
+  cloneCurrentPage(side: "left" | "right"): void {
+    this.removePageFlipper();
+
+    const wrapper = document.querySelector("main#iframe-wrapper");
+    if (!wrapper) {
+      console.error("Main iframe wrapper not found.");
+      return;
+    }
+
+    const pageDivs = wrapper.querySelectorAll("div > div");
+    if (pageDivs.length < 2) {
+      console.error("Expected two page divs, but found less.");
+      return;
+    }
+
+    const targetDiv = side === "right" ? pageDivs[1] : pageDivs[0];
+
+    if (side === "right") {
+      this.isTheRightPageCloned = true;
+    } else if (side === "left") {
+      this.isTheLeftPageCloned = true;
+    }
+
+    const clonedDiv = targetDiv.cloneNode(true) as HTMLElement;
+
+    // Get the bounding rectangle of the target div relative to the viewport
+    const rect = targetDiv.getBoundingClientRect();
+
+    const parentDiv = wrapper.querySelector("div:last-child");
+    let clonedDivScale = 1;
+    if (parentDiv) {
+      clonedDivScale = (parentDiv as HTMLElement).style.transform.includes(
+        "scale"
+      )
+        ? parseFloat(
+            (parentDiv as HTMLElement).style.transform.match(
+              /scale\(([^)]+)\)/
+            )?.[1] || "1"
+          )
+        : 1;
+    }
+
+    // Create a fixed-position clone of the target div
+    clonedDiv.style.cssText = ""; // Remove all inline styles
+    clonedDiv.style.position = "fixed";
+    clonedDiv.style.width = `${rect.width}px`;
+    clonedDiv.style.height = `${rect.height}px`;
+    clonedDiv.style.top = `${rect.top}px`;
+    clonedDiv.style.left = `${rect.left}px`;
+    clonedDiv.style.right = `${rect.right}px`;
+    clonedDiv.style.bottom = `${rect.bottom}px`;
+    clonedDiv.style.zIndex = "1000"; // Ensure it appears above other elements
+    clonedDiv.id = "FlippingPage";
+    clonedDiv.classList.add("page-holder", "flipping-page");
+    clonedDiv.style.scale = clonedDivScale.toString();
+    const frontSideDiv = document.createElement("div");
+    frontSideDiv.classList.add("front-side");
+
+    // Move the iframe from the clonedDiv to the frontSideDiv
+    const iframe = clonedDiv.querySelector("iframe");
+    if (iframe) {
+      frontSideDiv.appendChild(iframe);
+    }
+
+    clonedDiv.appendChild(frontSideDiv);
+
+    if (side === "right") {
+      this.cloneOfTheRightPage = clonedDiv;
+    }
+
+    // Append the cloned div to the body
+    document.body.appendChild(clonedDiv);
   }
 }
