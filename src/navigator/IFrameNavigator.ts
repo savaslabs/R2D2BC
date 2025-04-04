@@ -325,10 +325,17 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   // SAVAS
   isPageFlippingRequested: boolean = false;
+
+  isUnderspreadCloned: boolean = false;
+
   isTheLeftPageCloned: boolean = false;
   isTheRightPageCloned: boolean = false;
+  cloneOfTheLeftIframe: HTMLIFrameElement | any;
+  cloneOfTheRightIframe: HTMLIFrameElement | any;
   cloneOfTheLeftPage: HTMLElement | undefined;
   cloneOfTheRightPage: HTMLElement | undefined;
+  clonedPagesWrapper: HTMLElement | undefined;
+  pageFlipperStyles: any;
 
   public static async create(
     config: IFrameNavigatorConfig
@@ -896,6 +903,26 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         if (menuBookmark)
           menuBookmark.parentElement?.style.setProperty("display", "none");
       }
+
+      // These divs need to have ids and classes, it is driving me nuts.
+      const lastDiv = HTMLUtilities.findElement(
+        mainElement,
+        "main#iframe-wrapper > div:last-child"
+      );
+      if (lastDiv) {
+        lastDiv.classList.add("both-pages", "both-pages-display");
+        lastDiv.id = "BothPagesDisplay";
+
+        const innerDivs = lastDiv.querySelectorAll("div");
+        if (innerDivs.length >= 2) {
+          innerDivs[0].classList.add("left-page", "left-page-display");
+          innerDivs[0].id = "LeftPageDisplay";
+
+          innerDivs[1].classList.add("right-page", "right-page-display");
+          innerDivs[1].id = "RightPageDisplay";
+        }
+      }
+
       this.setupEvents();
 
       return await this.loadManifest();
@@ -1581,8 +1608,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         }
 
         if (this.isPageFlippingRequested) {
-          alert("I THINK IT'S LOADED");
-          //this.cloneCurrentPage("left");
+          this.cloneCurrentPage("left");
           this.isPageFlippingRequested = false;
         }
         this.hideLoadingMessage();
@@ -2658,7 +2684,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           (parseInt(getComputedStyle(iframeParent).height) - 100) /
           parseInt(height.toString().replace("px", ""));
         var scale = Math.min(widthRatio, heightRatio);
-        iframeParent.style.transform = "scale(" + scale + ")";
+        iframeParent.style.scale = scale.toString();
 
         for (const iframe of this.iframes) {
           iframe.style.height = height;
@@ -2817,7 +2843,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
       this.isPageFlippingRequested = true;
 
-      alert("yeah hi whassup");
       this.cloneCurrentPage("right");
 
       let index =
@@ -2836,7 +2861,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       };
       this.stopReadAloud();
       this.navigate(position, false);
-      alert("yeah all done.");
     } else {
       if (this.nextChapterLink) {
         const position: Locator = {
@@ -3495,20 +3519,67 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
-  createPageFlipper() {}
+  createPageFlipper() {
+    // First, make a container for the top and bottom pages,
+    // and put the appropriate iframes in those pages.
+    const topPage = document.createElement("div");
+    topPage.className = "top-page";
+    if (this.cloneOfTheLeftIframe) {
+      topPage.appendChild(this.cloneOfTheRightIframe);
+    }
+
+    const bottomPage = document.createElement("div");
+    bottomPage.className = "bottom-page";
+    if (this.cloneOfTheRightIframe) {
+      bottomPage.appendChild(this.cloneOfTheLeftIframe);
+    }
+
+    // Generate a new div for this page flipper
+    const pageFlipper = document.createElement("div");
+    pageFlipper.id = "FlippingPage";
+    pageFlipper.className = "page-flipper";
+
+    // IF WE'RE FLIPPING FROM RIGHT TO LEFT
+    // (meaning next page)
+    // We need to get the exact position of the page on the left, so we can place the flipper on top of it.
+    const rightIframe = document.querySelector(
+      "#RightPageDisplay iframe"
+    ) as HTMLIFrameElement;
+
+    if (rightIframe) {
+      const rect = rightIframe.getBoundingClientRect();
+      pageFlipper.style.position = "fixed";
+      pageFlipper.style.top = `${rect.top}px`;
+      pageFlipper.style.left = `${rect.left}px`;
+      pageFlipper.style.zIndex = "1000";
+    }
+
+    // EXTRA FUN COMPLICATION
+    // There's probably a scale effect, which we need to apply to our flipper.
+    const bothPagesDisplay = document.getElementById("BothPagesDisplay");
+    if (bothPagesDisplay) {
+      pageFlipper.style.scale = bothPagesDisplay.style.scale;
+    }
+
+    // Okay, we've created our flipper, now let's add it to the dom.
+    pageFlipper.appendChild(topPage);
+    pageFlipper.appendChild(bottomPage);
+
+    document.body.appendChild(pageFlipper);
+    // console.log(`pageFlipper: ` + pageFlipper);
+  }
 
   removePageFlipper() {
     const pageFlipper = document.getElementById("FlippingPage");
     if (pageFlipper) {
       pageFlipper.remove();
     }
+    // const clonedSpread = document.getElementById("BothPagesDisplayClone");
+    // if (clonedSpread) {
+    //   clonedSpread.remove();
+    // }
   }
 
-  /**
-   * Clones the current page (left or right), applies the scale from the parent div,
-   * and appends it before the last div in the main iframe wrapper.
-   * @param side - The side to clone ('left' or 'right').
-   */
   cloneCurrentPage(side: "left" | "right"): void {
     this.removePageFlipper();
 
@@ -3537,19 +3608,19 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     // Get the bounding rectangle of the target div relative to the viewport
     const rect = targetDiv.getBoundingClientRect();
 
-    const parentDiv = wrapper.querySelector("div:last-child");
-    let clonedDivScale = 1;
-    if (parentDiv) {
-      clonedDivScale = (parentDiv as HTMLElement).style.transform.includes(
-        "scale"
-      )
-        ? parseFloat(
-            (parentDiv as HTMLElement).style.transform.match(
-              /scale\(([^)]+)\)/
-            )?.[1] || "1"
-          )
-        : 1;
-    }
+    // const parentDiv = wrapper.querySelector("div:last-child");
+    // let clonedDivScale = 1;
+    // if (parentDiv) {
+    //   clonedDivScale = (parentDiv as HTMLElement).style.transform.includes(
+    //     "scale"
+    //   )
+    //     ? parseFloat(
+    //         (parentDiv as HTMLElement).style.transform.match(
+    //           /scale\(([^)]+)\)/
+    //         )?.[1] || "1"
+    //       )
+    //     : 1;
+    // }
 
     // Create a fixed-position clone of the target div
     clonedDiv.style.cssText = ""; // Remove all inline styles
@@ -3560,26 +3631,30 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     clonedDiv.style.left = `${rect.left}px`;
     clonedDiv.style.right = `${rect.right}px`;
     clonedDiv.style.bottom = `${rect.bottom}px`;
+    const bothPagesDisplay = document.getElementById("BothPagesDisplay");
+    if (bothPagesDisplay) {
+      clonedDiv.style.scale = bothPagesDisplay.style.scale;
+    }
     clonedDiv.style.zIndex = "1000"; // Ensure it appears above other elements
     clonedDiv.id = "FlippingPage";
     clonedDiv.classList.add("page-holder", "flipping-page");
-    clonedDiv.style.scale = clonedDivScale.toString();
-    const frontSideDiv = document.createElement("div");
-    frontSideDiv.classList.add("front-side");
 
     // Move the iframe from the clonedDiv to the frontSideDiv
     const iframe = clonedDiv.querySelector("iframe");
     if (iframe) {
-      frontSideDiv.appendChild(iframe);
+      iframe.style.opacity = "1";
     }
 
-    clonedDiv.appendChild(frontSideDiv);
-
-    if (side === "right") {
-      this.cloneOfTheRightPage = clonedDiv;
+    if (side === "left") {
+      this.cloneOfTheLeftIframe = iframe;
+      console.log("left page cloned");
+    } else if (side === "right") {
+      this.cloneOfTheRightIframe = iframe;
+      console.log("right page cloned");
     }
 
-    // Append the cloned div to the body
-    document.body.appendChild(clonedDiv);
+    if (this.cloneOfTheLeftIframe && this.cloneOfTheRightIframe) {
+      this.createPageFlipper();
+    }
   }
 }

@@ -1,5 +1,5 @@
 $pageAnimation: 2.3s;
-$pageTweening: ease-in-out; 
+$pageTweening: ease-in-out;
 
 $perspectiveBothPages: 2800px;
 $perspective2: 12000px;
@@ -9,10 +9,44 @@ $perspective3: 1500px;
   --sw: calc(83%);
 }
 
-.page-holder.flipping-page { 
-  transform-origin: top left;
+.both-pages-underneath {
+  opacity: 0;
+  opacity: 1;
+  filter: grayscale(80%);
+  //translate: 8px;
+  iframe {
+    opacity: 1 !important;
+  }
 }
 
+#FlippingPage {
+  opacity: 0.75;
+  transform-origin: top left;
+  transform-style: preserve-3d;
+  //translate: 8px;
+  translate: 8px;
+
+  animation-name: turnForward;
+  animation-timing-function: ease-in-out;
+  animation-duration: 5.25s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+
+  .top-page,
+  .bottom-page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    backface-visibility: hidden;
+  }
+  .bottom-page {
+    transform: rotateY(180deg);
+  }
+}
+
+.page-holder.flipping-page {
+  transform-origin: top left;
+}
 
 #iframe-wrapper {
   // THIS HOLDS BOTH PAGES
@@ -24,23 +58,20 @@ $perspective3: 1500px;
     // FIRST BOOK PAGE
     > div:first-child {
       transform: translateX(-623px);
-      iframe { }
-
+      iframe {
+      }
     }
 
     // SECOND BOOK PAGE
     > div:last-child {
-
-      
       // animation-name: nextFront;
       // animation-duration: 2.635s;
       // animation-iteration-count: infinite;
       // animation-timing-function: ease-in-out;
       // transform-origin: center left;
 
-      iframe { }
-
-      
+      iframe {
+      }
     }
   }
 }
@@ -59,12 +90,12 @@ main {
     position: relative;
     perspective: $perspective2;
     clip-path: unset !important;
-  
+
     &:has(iframe[src="about:blank"]) {
       box-shadow: none !important;
       iframe {
         box-shadow: none !important;
-      } 
+      }
     }
 
     &:first-child {
@@ -75,34 +106,35 @@ main {
     }
 
     #iframe-wrapper {
-      perspective: $perspective3; 
+      perspective: $perspective3;
     }
-    
+
     iframe {
       transform-style: preserve-3d;
       position: absolute;
       box-shadow: rgb(204, 204, 204) 0px 0px 8px 2px;
       overflow: hidden;
-      backface-visibility: hidden; // Added for smoother flipping
+      //backface-visibility: hidden; // Added for smoother flipping
     }
-    
+
     .iframe-clone {
       z-index: 2;
     }
 
-    .flip-next, .flip-prev {
+    .flip-next,
+    .flip-prev {
       backface-visibility: hidden;
     }
-    
+
     .flip-next {
-      transform-origin: left center; 
-      transform: rotateY(-180deg); 
+      transform-origin: left center;
+      transform: rotateY(-180deg);
       &.page-back {
         transform-origin: right;
         animation: nextBack $pageAnimation $pageTweening forwards;
         transform: rotateY(var(--flip-amount));
       }
-    
+
       &.page-front {
         z-index: 5;
         transform-origin: left;
@@ -110,10 +142,10 @@ main {
         animation: nextFront $pageAnimation $pageTweening forwards;
       }
     }
-    
+
     .flip-prev {
-      transform-origin: right center; 
-      transform: rotateY(180deg); 
+      transform-origin: right center;
+      transform: rotateY(180deg);
       &.page-back {
         z-index: 4;
         transform-origin: left;
@@ -121,7 +153,7 @@ main {
         transform: rotateY(0deg) translateX(2px);
         border-left: 2px solid rgba(67, 67, 67, 0.35);
       }
-    
+
       &.page-front {
         z-index: 5;
         transform-origin: right;
@@ -130,57 +162,66 @@ main {
         border-right: 2px solid rgba(67, 67, 67, 0.35);
       }
     }
-    
+
     .page-back {
       z-index: 3;
     }
-    
+
     .page-front {
-      z-index: 4; 
+      z-index: 4;
     }
   }
 }
 
-@keyframes nextFront {
+@keyframes turnForward {
   from {
-    transform: rotateY(0deg);
-    box-shadow: none;
+    transform: rotateY(0) translateX(0px);
   }
   to {
-    transform: rotateY(calc(0deg - var(--flip-amount)));
-    box-shadow: none;
+    transform: rotateY(-180deg) translateX(0px);
   }
 }
 
-@keyframes nextBack {
-  from {
-    transform: rotateY(180deg) translateX(0px);
-    box-shadow: none;
-  }
-  to {
-    transform: rotateY(0deg) translateX(0px);
-    box-shadow: none;
-  }
-}
+// @keyframes nextFront {
+//   from {
+//     transform: rotateY(0deg);
+//     box-shadow: none;
+//   }
+//   to {
+//     transform: rotateY(calc(0deg - var(--flip-amount)));
+//     box-shadow: none;
+//   }
+// }
 
-@keyframes prevFront {
-  from {
-    transform: rotateY(0deg);
-    box-shadow: none;
-  }
-  to {
-    transform: rotateY(180deg);
-    box-shadow: none;
-  }
-}
+// @keyframes nextBack {
+//   from {
+//     transform: rotateY(180deg) translateX(0px);
+//     box-shadow: none;
+//   }
+//   to {
+//     transform: rotateY(0deg) translateX(0px);
+//     box-shadow: none;
+//   }
+// }
 
-@keyframes prevBack {
-  from {
-    transform: rotateY(calc(0deg - var(--flip-amount)));
-    box-shadow: none;
-  }
-  to {
-    transform: rotateY(0deg);
-    box-shadow: none;
-  }
-}
+// @keyframes prevFront {
+//   from {
+//     transform: rotateY(0deg);
+//     box-shadow: none;
+//   }
+//   to {
+//     transform: rotateY(180deg);
+//     box-shadow: none;
+//   }
+// }
+
+// @keyframes prevBack {
+//   from {
+//     transform: rotateY(calc(0deg - var(--flip-amount)));
+//     box-shadow: none;
+//   }
+//   to {
+//     transform: rotateY(0deg);
+//     box-shadow: none;
+//   }
+// }
