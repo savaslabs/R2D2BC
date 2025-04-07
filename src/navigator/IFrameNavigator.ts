@@ -332,8 +332,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   isUnderLeftCloned: boolean = false;
   isUnderRightCloned: boolean = false;
 
-  theFlipLeftClone: any;
-  theFlipRightClone: any;
+  theFlipFrontClone: any;
+  theFlipBackClone: any;
   theUnderLeftClone: any;
   theUnderRightClone: any;
 
@@ -3546,73 +3546,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
-  makeAPageFlipper(side: "left" | "right") {
-    console.log(side);
-    const pageFlipper = document.createElement("div");
-    pageFlipper.id = "PageFlipper";
-    pageFlipper.className = "page-flipper";
-
-    // Get the absolute position of the iframe for laying this div over it.
-    if (side === "right") {
-      const rightPageIframe = document.querySelector(
-        "#RightPageIframe"
-      ) as HTMLIFrameElement;
-
-      if (rightPageIframe) {
-        const rect = rightPageIframe.getBoundingClientRect();
-        pageFlipper.style.position = "absolute";
-        pageFlipper.style.top = `${rect.top}px`;
-        pageFlipper.style.left = `${rect.left}px`;
-        pageFlipper.style.width = `${rect.width}px`;
-        pageFlipper.style.height = `${rect.height}px`;
-        pageFlipper.style.zIndex = "1000";
-      } else {
-        console.error("#RightPageIframe not found or inaccessible.");
-      }
-    }
-
-    const flipCardInner = document.createElement("div");
-    flipCardInner.className = "flip-card-inner";
-
-    const flipCardLeft = document.createElement("div");
-    flipCardLeft.className = "flip-card-left";
-    flipCardLeft.appendChild(this.theFlipLeftClone);
-
-    const flipCardRight = document.createElement("div");
-    flipCardRight.className = "flip-card-right";
-
-    flipCardInner.appendChild(flipCardLeft);
-    flipCardInner.appendChild(flipCardRight);
-
-    // UNDER FLIPPER
-    const underPageFlipper = document.createElement("div");
-    underPageFlipper.id = "UnderPageFlipper";
-    underPageFlipper.className = "under-page-flipper";
-
-    const leftPageDisplay = document.querySelector(
-      "#LeftPageDisplay"
-    ) as HTMLElement;
-
-    if (leftPageDisplay) {
-      const rect = leftPageDisplay.getBoundingClientRect();
-      underPageFlipper.style.position = "absolute";
-      underPageFlipper.style.top = `${rect.top}px`;
-      underPageFlipper.style.left = `${rect.left}px`;
-      underPageFlipper.style.width = `${rect.width}px`;
-      underPageFlipper.style.height = `${rect.height}px`;
-      underPageFlipper.style.zIndex = "999"; // Ensure it appears below the main flipper
-    }
-
-    if (this.isUnderLeftCloned) {
-      underPageFlipper.appendChild(this.theUnderLeftClone);
-    }
-
-    document.body.appendChild(underPageFlipper);
-
-    pageFlipper.appendChild(flipCardInner);
-
-    document.body.appendChild(pageFlipper);
-  }
+  createUnderPageFlippers() {}
 
   createANewPageFlipper(): void {
     const rightPageIframe = document.querySelector(
@@ -3680,7 +3614,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     flipFront.style.alignItems = "center";
     flipFront.style.justifyContent = "center";
     flipFront.style.backfaceVisibility = "hidden";
-    flipFront.textContent = "FLIP FRONT";
+    flipFront.append(this.theFlipFrontClone);
 
     // Create the FLIP BACK div
     const flipBack = document.createElement("div");
@@ -3796,8 +3730,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           .then((rightCanvas) => {
             const rightImage = document.createElement("img");
             rightImage.src = rightCanvas.toDataURL("image/png");
-            this.theFlipLeftClone = rightImage;
-            this.isFlipLeftCloned = true;
+            this.theFlipFrontClone = rightImage;
+            this.isFlipRightCloned = true;
 
             if (leftPageIframe && leftPageIframe.contentWindow) {
               const leftIframeDocument =
@@ -3809,7 +3743,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   leftImage.src = leftCanvas.toDataURL("image/png");
                   this.theUnderLeftClone = leftImage;
                   this.isUnderLeftCloned = true;
-                  this.makeAPageFlipper("right");
+                  //this.makeAPageFlipper("right");
+                  this.createANewPageFlipper();
                 })
                 .catch((error) => {
                   console.error("Error capturing left page screenshot:", error);
@@ -3855,7 +3790,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             img.style.left = "0";
             img.style.zIndex = "1000";
 
-            this.theFlipLeftClone = img;
+            this.theFlipFrontClone = img;
             this.isFlipLeftCloned = true;
 
             this.makeAPageFlipper("right");
