@@ -98,6 +98,7 @@ import {
   ConsumptionModuleConfig,
 } from "../modules/consumption/ConsumptionModule";
 import KeyDownEvent = JQuery.KeyDownEvent;
+import html2canvas from "html2canvas";
 
 export type GetContent = (href: string) => Promise<string>;
 export type GetContentBytesLength = (
@@ -326,10 +327,21 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   // SAVAS
   isPageFlippingRequested: boolean = false;
 
+  isFlipLeftCloned: boolean = false;
+  isFlipRightCloned: boolean = false;
+  isUnderLeftCloned: boolean = false;
+  isUnderRightCloned: boolean = false;
+
+  theFlipLeftClone: any;
+  theFlipRightClone: any;
+  theUnderLeftClone: any;
+  theUnderRightClone: any;
+
   isUnderspreadCloned: boolean = false;
 
   isTheLeftPageCloned: boolean = false;
   isTheRightPageCloned: boolean = false;
+
   cloneOfTheLeftIframe: HTMLIFrameElement | any;
   cloneOfTheRightIframe: HTMLIFrameElement | any;
   cloneOfTheLeftPage: HTMLElement | undefined;
@@ -920,6 +932,17 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
           innerDivs[1].classList.add("right-page", "right-page-display");
           innerDivs[1].id = "RightPageDisplay";
+        }
+
+        const leftPageIframe = innerDivs[0].querySelector("iframe");
+        if (leftPageIframe) {
+          leftPageIframe.classList.add("left-page-iframe");
+          leftPageIframe.id = "LeftPageIframe";
+        }
+        const rightPageIframe = innerDivs[1].querySelector("iframe");
+        if (rightPageIframe) {
+          rightPageIframe.classList.add("right-page-iframe");
+          rightPageIframe.id = "RightPageIframe";
         }
       }
 
@@ -2356,7 +2379,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     this.handlePreviousPageClick(undefined);
   }
   nextPage(): any {
-    this.handleNextPageClick(undefined);
+    //alert("hi");
+    //this.cloneAnIframe("left");
+    this.yetAnotherFunction();
+    //return;
+    //this.handleNextPageClick(undefined);
   }
   previousResource(): any {
     this.handlePreviousChapterClick(undefined);
@@ -2842,8 +2869,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   ): void {
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
       this.isPageFlippingRequested = true;
-
-      this.cloneCurrentPage("right");
 
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
@@ -3516,6 +3541,182 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       if (container) {
         container.style.display = "none";
       }
+    }
+  }
+
+  makeAPageFlipper(side: "left" | "right") {
+    console.log(side);
+    const pageFlipper = document.createElement("div");
+    pageFlipper.id = "PageFlipper";
+    pageFlipper.className = "page-flipper";
+
+    // Get the absolute position of the iframe for laying this div over it.
+    if (side === "right") {
+      const rightPageIframe = document.querySelector(
+        "#RightPageIframe"
+      ) as HTMLIFrameElement;
+
+      if (rightPageIframe) {
+        const rect = rightPageIframe.getBoundingClientRect();
+        pageFlipper.style.position = "absolute";
+        pageFlipper.style.top = `${rect.top}px`;
+        pageFlipper.style.left = `${rect.left}px`;
+        pageFlipper.style.width = `${rect.width}px`;
+        pageFlipper.style.height = `${rect.height}px`;
+        pageFlipper.style.zIndex = "1000";
+      } else {
+        console.error("#RightPageIframe not found or inaccessible.");
+      }
+    }
+
+    const flipCardInner = document.createElement("div");
+    flipCardInner.className = "flip-card-inner";
+
+    const flipCardLeft = document.createElement("div");
+    flipCardLeft.className = "flip-card-left";
+    flipCardLeft.appendChild(this.theFlipLeftClone);
+
+    const flipCardRight = document.createElement("div");
+    flipCardRight.className = "flip-card-right";
+
+    flipCardInner.appendChild(flipCardLeft);
+    flipCardInner.appendChild(flipCardRight);
+
+    // UNDER FLIPPER
+    const underPageFlipper = document.createElement("div");
+    underPageFlipper.id = "UnderPageFlipper";
+    underPageFlipper.className = "under-page-flipper";
+
+    const leftPageDisplay = document.querySelector(
+      "#LeftPageDisplay"
+    ) as HTMLElement;
+
+    if (leftPageDisplay) {
+      const rect = leftPageDisplay.getBoundingClientRect();
+      underPageFlipper.style.position = "absolute";
+      underPageFlipper.style.top = `${rect.top}px`;
+      underPageFlipper.style.left = `${rect.left}px`;
+      underPageFlipper.style.width = `${rect.width}px`;
+      underPageFlipper.style.height = `${rect.height}px`;
+      underPageFlipper.style.zIndex = "999"; // Ensure it appears below the main flipper
+    }
+
+    if (this.isUnderLeftCloned) {
+      underPageFlipper.appendChild(this.theUnderLeftClone);
+    }
+
+    document.body.appendChild(underPageFlipper);
+
+    pageFlipper.appendChild(flipCardInner);
+
+    document.body.appendChild(pageFlipper);
+  }
+
+  yetAnotherFunction() {
+    const rightPageIframe = document.querySelector(
+      "#RightPageIframe"
+    ) as HTMLIFrameElement;
+    const leftPageIframe = document.querySelector(
+      "#LeftPageIframe"
+    ) as HTMLIFrameElement;
+
+    if (rightPageIframe && rightPageIframe.contentWindow) {
+      try {
+        const iframeDocument =
+          rightPageIframe.contentDocument ||
+          rightPageIframe.contentWindow.document;
+        html2canvas(iframeDocument.body)
+          .then((rightCanvas) => {
+            const rightImage = document.createElement("img");
+            rightImage.src = rightCanvas.toDataURL("image/png");
+            this.theFlipLeftClone = rightImage;
+            this.isFlipLeftCloned = true;
+
+            if (leftPageIframe && leftPageIframe.contentWindow) {
+              const leftIframeDocument =
+                leftPageIframe.contentDocument ||
+                leftPageIframe.contentWindow.document;
+              html2canvas(leftIframeDocument.body)
+                .then((leftCanvas) => {
+                  const leftImage = document.createElement("img");
+                  leftImage.src = leftCanvas.toDataURL("image/png");
+                  this.theUnderLeftClone = leftImage;
+                  this.isUnderLeftCloned = true;
+                  this.makeAPageFlipper("right");
+                })
+                .catch((error) => {
+                  console.error("Error capturing left page screenshot:", error);
+                });
+            } else {
+              console.error("#LeftPageIframe not found or inaccessible.");
+            }
+          })
+          .catch((error) => {
+            console.error("Error capturing right page screenshot:", error);
+          });
+      } catch (error) {
+        console.error(
+          "Unable to access iframe content. Ensure it is same-origin.",
+          error
+        );
+      }
+    } else {
+      console.error("#RightPageIframe not found or inaccessible.");
+    }
+  }
+
+  cloneAnIframe(side: "left" | "right") {
+    if (this.isFlipLeftCloned) {
+      return;
+    }
+    console.log(side);
+    const rightPageDisplay = document.querySelector(
+      "#RightPageIframe"
+    ) as HTMLIFrameElement;
+
+    if (rightPageDisplay && rightPageDisplay.contentWindow) {
+      try {
+        const iframeDocument =
+          rightPageDisplay.contentDocument ||
+          rightPageDisplay.contentWindow.document;
+        html2canvas(iframeDocument.body)
+          .then((canvas) => {
+            const img = document.createElement("img");
+            img.src = canvas.toDataURL("image/png");
+            img.style.position = "absolute";
+            img.style.top = "0";
+            img.style.left = "0";
+            img.style.zIndex = "1000";
+
+            this.theFlipLeftClone = img;
+            this.isFlipLeftCloned = true;
+
+            this.makeAPageFlipper("right");
+
+            const leftPageDisplay = document.querySelector(
+              "#LeftPageDisplay"
+            ) as HTMLElement;
+
+            if (leftPageDisplay) {
+              const rect = leftPageDisplay.getBoundingClientRect();
+
+              img.style.width = `${rect.width}px`;
+              img.style.height = `${rect.height}px`;
+              img.style.top = `${rect.top}px`;
+              img.style.left = `${rect.left}px`;
+            }
+          })
+          .catch((error) => {
+            console.error("Error capturing screenshot:", error);
+          });
+      } catch (error) {
+        console.error(
+          "Unable to access iframe content. Ensure it is same-origin.",
+          error
+        );
+      }
+    } else {
+      console.error("#RightPageIframe not found or inaccessible.");
     }
   }
 

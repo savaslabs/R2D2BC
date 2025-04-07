@@ -1,0 +1,25 @@
+#UnderPageFlipper {
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    filter: grayscale(1);
+    opacity: 0.75;
+  }
+}
+
+#PageFlipper {
+  .flip-card-inner {
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      filter: grayscale(1);
+      opacity: 0.75;
+    }
+    .flip-card-left {
+    }
+    .flip-card-right {
+    }
+  }
+}
