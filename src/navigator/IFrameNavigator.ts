@@ -2376,9 +2376,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   previousPage(): any {
-    //this.leftSideScreenshotTest();
-    //this.createANewPageFlipper();
-    this.yetAnotherFunction();
+    this.anotherAnonymousFunction();
     //this.handlePreviousPageClick(undefined);
   }
   nextPage(): any {
@@ -3635,6 +3633,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     flipBack.id = "NewPageFlipperBack";
     flipBack.className = "new-page-flipper-back";
     flipBack.textContent = "FLIP BACK";
+    flipBack.append(this.theFlipBackClone);
 
     // Create the inner container for 3D transformation
     const flipInner = document.createElement("div");
@@ -3721,6 +3720,14 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
+  anotherAnonymousFunction() {
+    this.cloneAnIframe("right");
+    this.cloneAnIframe("left");
+    setTimeout(() => {
+      this.createANewPageFlipper();
+    }, 1000);
+  }
+
   yetAnotherFunction() {
     const rightPageIframe = document.querySelector(
       "#RightPageIframe"
@@ -3751,7 +3758,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   leftImage.src = leftCanvas.toDataURL("image/png");
                   this.theUnderLeftClone = leftImage;
                   this.isUnderLeftCloned = true;
-                  this.createANewPageFlipper();
+                  //this.createANewPageFlipper();
                 })
                 .catch((error) => {
                   console.error("Error capturing left page screenshot:", error);
@@ -3775,57 +3782,76 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   cloneAnIframe(side: "left" | "right") {
-    if (this.isFlipLeftCloned) {
-      return;
-    }
-    console.log(side);
-    const rightPageDisplay = document.querySelector(
-      "#RightPageIframe"
-    ) as HTMLIFrameElement;
+    if (side === "right") {
+      const rightPageIframe = document.querySelector(
+        "#RightPageIframe"
+      ) as HTMLIFrameElement;
 
-    if (rightPageDisplay && rightPageDisplay.contentWindow) {
-      try {
-        const iframeDocument =
-          rightPageDisplay.contentDocument ||
-          rightPageDisplay.contentWindow.document;
-        html2canvas(iframeDocument.body)
-          .then((canvas) => {
-            const img = document.createElement("img");
-            img.src = canvas.toDataURL("image/png");
-            img.style.position = "absolute";
-            img.style.top = "0";
-            img.style.left = "0";
-            img.style.zIndex = "1000";
+      if (rightPageIframe && rightPageIframe.contentWindow) {
+        try {
+          const iframeDocument =
+            rightPageIframe.contentDocument ||
+            rightPageIframe.contentWindow.document;
 
-            this.theFlipFrontClone = img;
-            this.isFlipLeftCloned = true;
+          html2canvas(iframeDocument.body)
+            .then((canvas) => {
+              const screenshotImage = document.createElement("img");
+              screenshotImage.src = canvas.toDataURL("image/png");
+              this.theFlipFrontClone = screenshotImage;
 
-            //this.makeAPageFlipper("right");
-
-            const leftPageDisplay = document.querySelector(
-              "#LeftPageDisplay"
-            ) as HTMLElement;
-
-            if (leftPageDisplay) {
-              const rect = leftPageDisplay.getBoundingClientRect();
-
-              img.style.width = `${rect.width}px`;
-              img.style.height = `${rect.height}px`;
-              img.style.top = `${rect.top}px`;
-              img.style.left = `${rect.left}px`;
-            }
-          })
-          .catch((error) => {
-            console.error("Error capturing screenshot:", error);
-          });
-      } catch (error) {
-        console.error(
-          "Unable to access iframe content. Ensure it is same-origin.",
-          error
-        );
+              // Once the screenshot is saved, call createANewPageFlipper
+              //this.createANewPageFlipper();
+            })
+            .catch((error) => {
+              console.error(
+                "Error capturing screenshot of #RightPageIframe:",
+                error
+              );
+            });
+        } catch (error) {
+          console.error(
+            "Unable to access iframe content. Ensure it is same-origin.",
+            error
+          );
+        }
+      } else {
+        console.error("#RightPageIframe not found or inaccessible.");
       }
-    } else {
-      console.error("#RightPageIframe not found or inaccessible.");
+    } else if (side === "left") {
+      const leftPageIframe = document.querySelector(
+        "#LeftPageIframe"
+      ) as HTMLIFrameElement;
+
+      if (leftPageIframe && leftPageIframe.contentWindow) {
+        try {
+          const iframeDocument =
+            leftPageIframe.contentDocument ||
+            leftPageIframe.contentWindow.document;
+
+          html2canvas(iframeDocument.body)
+            .then((canvas) => {
+              const screenshotImage = document.createElement("img");
+              screenshotImage.src = canvas.toDataURL("image/png");
+              this.theFlipBackClone = screenshotImage;
+
+              // Once the screenshot is saved, call createANewPageFlipper
+              //this.createANewPageFlipper();
+            })
+            .catch((error) => {
+              console.error(
+                "Error capturing screenshot of #LeftPageIframe:",
+                error
+              );
+            });
+        } catch (error) {
+          console.error(
+            "Unable to access iframe content. Ensure it is same-origin.",
+            error
+          );
+        }
+      } else {
+        console.error("#LeftPageIframe not found or inaccessible.");
+      }
     }
   }
 
