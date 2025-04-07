@@ -2376,7 +2376,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   previousPage(): any {
-    this.handlePreviousPageClick(undefined);
+    //this.leftSideScreenshotTest();
+    this.createANewPageFlipper();
+    //this.handlePreviousPageClick(undefined);
   }
   nextPage(): any {
     //alert("hi");
@@ -3610,6 +3612,171 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     pageFlipper.appendChild(flipCardInner);
 
     document.body.appendChild(pageFlipper);
+  }
+
+  createANewPageFlipper(): void {
+    const rightPageIframe = document.querySelector(
+      "#RightPageIframe"
+    ) as HTMLIFrameElement;
+
+    if (!rightPageIframe) {
+      console.error("#RightPageIframe not found or inaccessible.");
+      return;
+    }
+
+    // Get the dimensions and position of #RightPageIframe
+    const rect = rightPageIframe.getBoundingClientRect();
+
+    // Create the #UnderPageFlipper container
+    const underPageFlipper = document.createElement("div");
+    underPageFlipper.id = "UnderPageFlipper";
+    underPageFlipper.className = "under-page-flipper";
+    underPageFlipper.style.position = "absolute";
+    underPageFlipper.style.backgroundColor = "orange";
+    underPageFlipper.style.color = "white";
+    underPageFlipper.style.display = "flex";
+    underPageFlipper.style.alignItems = "center";
+    underPageFlipper.style.justifyContent = "center";
+    underPageFlipper.style.zIndex = "999"; // Ensure it appears below the main flipper
+    underPageFlipper.textContent = "UNDER PAGE FLIPPER";
+
+    // Get the dimensions and position of LeftPageIframe
+    const leftPageIframe = document.querySelector(
+      "#LeftPageIframe"
+    ) as HTMLIFrameElement;
+
+    if (leftPageIframe) {
+      const rect = leftPageIframe.getBoundingClientRect();
+      underPageFlipper.style.top = `${rect.top}px`;
+      underPageFlipper.style.left = `${rect.left}px`;
+      underPageFlipper.style.width = `${rect.width}px`;
+      underPageFlipper.style.height = `${rect.height}px`;
+    } else {
+      console.error("#LeftPageIframe not found or inaccessible.");
+    }
+
+    // Append #UnderPageFlipper to the body
+    document.body.appendChild(underPageFlipper);
+
+    // Create the #NewPageFlipper container
+    const newPageFlipper = document.createElement("div");
+    newPageFlipper.id = "NewPageFlipper";
+    newPageFlipper.className = "new-page-flipper";
+    newPageFlipper.style.top = `${rect.top}px`;
+    newPageFlipper.style.left = `${rect.left}px`;
+    newPageFlipper.style.width = `${rect.width}px`;
+    newPageFlipper.style.height = `${rect.height}px`;
+
+    // Create the FLIP FRONT div
+    const flipFront = document.createElement("div");
+    flipFront.id = "NewPageFlipperFront";
+    flipFront.className = "new-page-flipper-front";
+    flipFront.style.position = "absolute";
+    flipFront.style.width = "100%";
+    flipFront.style.height = "100%";
+    flipFront.style.backgroundColor = "green";
+    flipFront.style.color = "white";
+    flipFront.style.display = "flex";
+    flipFront.style.alignItems = "center";
+    flipFront.style.justifyContent = "center";
+    flipFront.style.backfaceVisibility = "hidden";
+    flipFront.textContent = "FLIP FRONT";
+
+    // Create the FLIP BACK div
+    const flipBack = document.createElement("div");
+    flipBack.style.position = "absolute";
+    flipBack.style.width = "100%";
+    flipBack.style.height = "100%";
+    flipBack.style.backgroundColor = "blue";
+    flipBack.style.color = "white";
+    flipBack.style.display = "flex";
+    flipBack.style.alignItems = "center";
+    flipBack.style.justifyContent = "center";
+    flipBack.style.backfaceVisibility = "hidden";
+    flipBack.style.transform = "rotateY(180deg)";
+    flipBack.textContent = "FLIP BACK";
+
+    // Create the inner container for 3D transformation
+    const flipInner = document.createElement("div");
+    flipInner.style.position = "relative";
+    flipInner.style.width = "100%";
+    flipInner.style.height = "100%";
+    flipInner.style.transformStyle = "preserve-3d";
+    flipInner.style.transition = "transform 3s ease-in-out";
+    flipInner.style.transformOrigin = "center left";
+    newPageFlipper.style.perspective = "1500px"; // Adjusted perspective down by 50%
+
+    // Append FLIP FRONT and FLIP BACK to the inner container
+    flipInner.appendChild(flipFront);
+    flipInner.appendChild(flipBack);
+
+    // Add the animation to simulate the page turn
+    setTimeout(() => {
+      flipInner.style.transform = "rotateY(-180deg)";
+      setTimeout(() => {
+        this.removeNewPageFlipper();
+      }, 3200);
+    }, 100); // Delay to ensure the element is added to the DOM before animating
+
+    // Append the inner container to #NewPageFlipper
+    newPageFlipper.appendChild(flipInner);
+
+    // Append #NewPageFlipper to the body
+    document.body.appendChild(newPageFlipper);
+  }
+
+  removeNewPageFlipper() {
+    const newPageFlipper = document.querySelector("#NewPageFlipper");
+    if (newPageFlipper) {
+      newPageFlipper.remove();
+    }
+    const underPageFlipper = document.querySelector("#UnderPageFlipper");
+    if (underPageFlipper) {
+      underPageFlipper.remove();
+    }
+  }
+
+  leftSideScreenshotTest() {
+    const leftPageIframe = document.querySelector(
+      "#LeftPageIframe"
+    ) as HTMLIFrameElement;
+
+    if (leftPageIframe && leftPageIframe.contentWindow) {
+      try {
+        const iframeDocument =
+          leftPageIframe.contentDocument ||
+          leftPageIframe.contentWindow.document;
+
+        html2canvas(iframeDocument.body)
+          .then((canvas) => {
+            const screenshotImage = document.createElement("img");
+            screenshotImage.src = canvas.toDataURL("image/png");
+            screenshotImage.style.position = "fixed";
+            screenshotImage.style.top = "50%";
+            screenshotImage.style.left = "50%";
+            screenshotImage.style.transform = "translate(-50%, -50%)";
+            screenshotImage.style.zIndex = "9999";
+            screenshotImage.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+            screenshotImage.style.border = "2px solid #ccc";
+            screenshotImage.style.borderRadius = "8px";
+
+            document.body.appendChild(screenshotImage);
+          })
+          .catch((error) => {
+            console.error(
+              "Error capturing screenshot of #LeftPageIframe:",
+              error
+            );
+          });
+      } catch (error) {
+        console.error(
+          "Unable to access iframe content. Ensure it is same-origin.",
+          error
+        );
+      }
+    } else {
+      console.error("#LeftPageIframe not found or inaccessible.");
+    }
   }
 
   yetAnotherFunction() {

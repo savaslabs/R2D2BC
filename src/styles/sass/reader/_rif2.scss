@@ -23,3 +23,19 @@
     }
   }
 }
+
+#NewPageFlipper {
+  position: absolute;
+  perspective: 1000px;
+  z-index: 1000;
+
+  .new-page-flipper-front {
+    img {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+    }
+  }
+}
