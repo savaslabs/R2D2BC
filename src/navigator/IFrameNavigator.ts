@@ -2377,15 +2377,16 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   previousPage(): any {
     //this.leftSideScreenshotTest();
-    this.createANewPageFlipper();
+    //this.createANewPageFlipper();
+    this.yetAnotherFunction();
     //this.handlePreviousPageClick(undefined);
   }
   nextPage(): any {
     //alert("hi");
     //this.cloneAnIframe("left");
-    this.yetAnotherFunction();
+
     //return;
-    //this.handleNextPageClick(undefined);
+    this.handleNextPageClick(undefined);
   }
   previousResource(): any {
     this.handlePreviousChapterClick(undefined);

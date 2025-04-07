@@ -1,8 +1,19 @@
 $z-underflipper: 999;
 $z-index-flipper: 1000;
 
-html.page-is-flipping {
+.page-is-flipping {
   overflow: hidden;
+
+  .under-flipper {
+    &.under-flipper-left {
+      &:after {
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+    }
+    &.under-flipper-right {
+      background-color: beige;
+    }
+  }
 }
 
 .under-flipper {
@@ -13,6 +24,14 @@ html.page-is-flipping {
   justify-content: center;
   &.under-flipper-left {
     background-color: beige;
+    &:after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transition: all 1s linear;
+      transition-delay: 0.9s;
+      background-color: rgba(0, 0, 0, 0.01);
+    }
   }
   &.under-flipper-right {
     background-color: beige;
