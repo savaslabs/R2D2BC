@@ -1,41 +1,68 @@
-#UnderPageFlipper {
-  img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    filter: grayscale(1);
-    opacity: 0.75;
-  }
+$z-underflipper: 999;
+$z-index-flipper: 1000;
+
+html.page-is-flipping {
+  overflow: hidden;
 }
 
-#PageFlipper {
-  .flip-card-inner {
-    img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      filter: grayscale(1);
-      opacity: 0.75;
-    }
-    .flip-card-left {
-    }
-    .flip-card-right {
-    }
+.under-flipper {
+  position: absolute;
+  z-index: $z-underflipper;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &.under-flipper-left {
+    background-color: beige;
+  }
+  &.under-flipper-right {
+    background-color: beige;
   }
 }
 
 #NewPageFlipper {
   position: absolute;
   perspective: 1000px;
-  z-index: 1000;
+  z-index: $z-index-flipper;
+
+  .new-page-flipper-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 3s ease-in-out;
+    transform-origin: center left;
+  }
 
   .new-page-flipper-front {
-    img {
-      position: absolute;
-      inset: 0;
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: cover;
-    }
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: green;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backface-visibility: hidden;
+  }
+
+  .new-page-flipper-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: blue;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backface-visibility: hidden;
+    transform: rotateY(180deg);
+  }
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
   }
 }

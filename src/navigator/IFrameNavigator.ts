@@ -3546,7 +3546,57 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
-  createUnderPageFlippers() {}
+  createUnderPageFlippers() {
+    const createUnderFlipper = (side: "left" | "right") => {
+      // Determine properties based on the side
+
+      let iframeSelector: string,
+        newDivId: string,
+        newDivClass: string,
+        textContent: string;
+      if (side === "left") {
+        iframeSelector = "#LeftPageIframe";
+        newDivId = "UnderFlipperLeft";
+        newDivClass = "under-flipper-left";
+        textContent = "UNDER FLIPPER LEFT";
+      } else {
+        iframeSelector = "#RightPageIframe";
+        newDivId = "UnderFlipperRight";
+        newDivClass = "under-flipper-right";
+        textContent = "UNDER FLIPPER RIGHT";
+      }
+
+      // Create the flipper container
+      const underFlipper = document.createElement("div");
+      underFlipper.id = newDivId;
+      underFlipper.classList.add("under-flipper", newDivClass);
+      underFlipper.textContent = textContent;
+
+      // Get the dimensions and position of the iframe
+      const iframe = document.querySelector(
+        iframeSelector
+      ) as HTMLIFrameElement;
+
+      if (iframe) {
+        const rect = iframe.getBoundingClientRect();
+        underFlipper.style.top = `${rect.top}px`;
+        underFlipper.style.left = `${rect.left}px`;
+        underFlipper.style.width = `${rect.width}px`;
+        underFlipper.style.height = `${rect.height}px`;
+      } else {
+        console.error(`${iframeSelector} not found or inaccessible.`);
+      }
+
+      // Append the flipper to the body
+      document.body.appendChild(underFlipper);
+    };
+
+    // Create the left UnderFlipper
+    createUnderFlipper("left");
+
+    // Create the right flipper
+    createUnderFlipper("right");
+  }
 
   createANewPageFlipper(): void {
     const rightPageIframe = document.querySelector(
@@ -3561,36 +3611,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     // Get the dimensions and position of #RightPageIframe
     const rect = rightPageIframe.getBoundingClientRect();
 
-    // Create the #UnderPageFlipper container
-    const underPageFlipper = document.createElement("div");
-    underPageFlipper.id = "UnderPageFlipper";
-    underPageFlipper.className = "under-page-flipper";
-    underPageFlipper.style.position = "absolute";
-    underPageFlipper.style.backgroundColor = "orange";
-    underPageFlipper.style.color = "white";
-    underPageFlipper.style.display = "flex";
-    underPageFlipper.style.alignItems = "center";
-    underPageFlipper.style.justifyContent = "center";
-    underPageFlipper.style.zIndex = "999"; // Ensure it appears below the main flipper
-    underPageFlipper.textContent = "UNDER PAGE FLIPPER";
-
-    // Get the dimensions and position of LeftPageIframe
-    const leftPageIframe = document.querySelector(
-      "#LeftPageIframe"
-    ) as HTMLIFrameElement;
-
-    if (leftPageIframe) {
-      const rect = leftPageIframe.getBoundingClientRect();
-      underPageFlipper.style.top = `${rect.top}px`;
-      underPageFlipper.style.left = `${rect.left}px`;
-      underPageFlipper.style.width = `${rect.width}px`;
-      underPageFlipper.style.height = `${rect.height}px`;
-    } else {
-      console.error("#LeftPageIframe not found or inaccessible.");
-    }
-
-    // Append #UnderPageFlipper to the body
-    document.body.appendChild(underPageFlipper);
+    // Call createUnderPageFlippers to create the under page flipper
+    this.createUnderPageFlippers();
 
     // Create the #NewPageFlipper container
     const newPageFlipper = document.createElement("div");
@@ -3605,40 +3627,18 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const flipFront = document.createElement("div");
     flipFront.id = "NewPageFlipperFront";
     flipFront.className = "new-page-flipper-front";
-    flipFront.style.position = "absolute";
-    flipFront.style.width = "100%";
-    flipFront.style.height = "100%";
-    flipFront.style.backgroundColor = "green";
-    flipFront.style.color = "white";
-    flipFront.style.display = "flex";
-    flipFront.style.alignItems = "center";
-    flipFront.style.justifyContent = "center";
-    flipFront.style.backfaceVisibility = "hidden";
     flipFront.append(this.theFlipFrontClone);
 
     // Create the FLIP BACK div
     const flipBack = document.createElement("div");
-    flipBack.style.position = "absolute";
-    flipBack.style.width = "100%";
-    flipBack.style.height = "100%";
-    flipBack.style.backgroundColor = "blue";
-    flipBack.style.color = "white";
-    flipBack.style.display = "flex";
-    flipBack.style.alignItems = "center";
-    flipBack.style.justifyContent = "center";
-    flipBack.style.backfaceVisibility = "hidden";
-    flipBack.style.transform = "rotateY(180deg)";
+    flipBack.id = "NewPageFlipperBack";
+    flipBack.className = "new-page-flipper-back";
     flipBack.textContent = "FLIP BACK";
 
     // Create the inner container for 3D transformation
     const flipInner = document.createElement("div");
-    flipInner.style.position = "relative";
-    flipInner.style.width = "100%";
-    flipInner.style.height = "100%";
-    flipInner.style.transformStyle = "preserve-3d";
-    flipInner.style.transition = "transform 3s ease-in-out";
-    flipInner.style.transformOrigin = "center left";
-    newPageFlipper.style.perspective = "1500px"; // Adjusted perspective down by 50%
+    flipInner.id = "NewPageFlipperInner";
+    flipInner.className = "new-page-flipper-inner";
 
     // Append FLIP FRONT and FLIP BACK to the inner container
     flipInner.appendChild(flipFront);
@@ -3646,8 +3646,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
     // Add the animation to simulate the page turn
     setTimeout(() => {
+      document.body.classList.add("page-is-flipping");
       flipInner.style.transform = "rotateY(-180deg)";
       setTimeout(() => {
+        document.body.classList.add("page-is-flipping");
         this.removeNewPageFlipper();
       }, 3200);
     }, 100); // Delay to ensure the element is added to the DOM before animating
@@ -3664,10 +3666,15 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     if (newPageFlipper) {
       newPageFlipper.remove();
     }
-    const underPageFlipper = document.querySelector("#UnderPageFlipper");
-    if (underPageFlipper) {
-      underPageFlipper.remove();
+    const underFlipperLeft = document.querySelector("#UnderFlipperLeft");
+    if (underFlipperLeft) {
+      underFlipperLeft.remove();
     }
+    const underFlipperRight = document.querySelector("#UnderFlipperRight");
+    if (underFlipperRight) {
+      underFlipperRight.remove();
+    }
+    document.body.classList.remove("page-is-flipping");
   }
 
   leftSideScreenshotTest() {
@@ -3743,7 +3750,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   leftImage.src = leftCanvas.toDataURL("image/png");
                   this.theUnderLeftClone = leftImage;
                   this.isUnderLeftCloned = true;
-                  //this.makeAPageFlipper("right");
                   this.createANewPageFlipper();
                 })
                 .catch((error) => {
@@ -3793,7 +3799,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.theFlipFrontClone = img;
             this.isFlipLeftCloned = true;
 
-            this.makeAPageFlipper("right");
+            //this.makeAPageFlipper("right");
 
             const leftPageDisplay = document.querySelector(
               "#LeftPageDisplay"
