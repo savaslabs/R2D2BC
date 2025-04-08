@@ -1,19 +1,40 @@
 $z-underflipper: 999;
 $z-index-flipper: 1000;
-$flip-perspective: 300dvw;
+$flip-perspective: 400dvw;
 
 .page-is-flipping {
   overflow: hidden;
 
-  .under-flipper {
-    &.under-flipper-left {
-      &:after {
-        transform: translateX(0);
-        background-color: rgba(0, 0, 0, 0.5);
+  // .under-flipper {
+  //   &.under-flipper-left {
+  //     &:after {
+  //       transform: translateX(0);
+  //       background-color: rgba(0, 0, 0, 0.5);
+  //     }
+  //   }
+  //   &.under-flipper-right {
+  //     background-color: beige;
+  //   }
+  // }
+
+  &.flipping-to-next {
+    .under-flipper {
+      &.under-flipper-left {
+        &:after {
+          transform: translateX(0);
+          background-color: rgba(0, 0, 0, 0.5);
+        }
       }
     }
-    &.under-flipper-right {
-      background-color: beige;
+  }
+  &.flipping-to-prev {
+    .under-flipper {
+      &.under-flipper-right {
+        &:after {
+          transform: translateX(0);
+          background-color: rgba(0, 0, 0, 0.5);
+        }
+      }
     }
   }
 }
@@ -48,6 +69,18 @@ $flip-perspective: 300dvw;
   }
   &.under-flipper-right {
     background-color: beige;
+    overflow: hidden;
+    &:after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transition:
+        background 1s linear,
+        transform 2s ease-in-out;
+      transition-delay: 1.2s, 0.5s;
+      transform: translateX(-120%);
+      background-color: rgba(0, 0, 0, 0.1);
+    }
   }
 }
 
@@ -62,7 +95,17 @@ $flip-perspective: 300dvw;
     height: 100%;
     transform-style: preserve-3d;
     transition: transform 3s ease-in-out;
-    transform-origin: center left;
+  }
+
+  &.flipping-to-next {
+    .new-page-flipper-inner {
+      transform-origin: center left;
+    }
+  }
+  &.flipping-to-prev {
+    .new-page-flipper-inner {
+      transform-origin: center right;
+    }
   }
 
   .new-page-flipper-front {

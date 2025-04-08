@@ -2380,15 +2380,14 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       this.makeScreenshotOfIframe("right", "right").then(() => {
         this.makeScreenshotOfIframe("left", "front").then(() => {
           this.createUnderPageFlippers().then(() => {
-            //this.handleNextPageClick(undefined);
             this.handlePreviousPageClick(undefined);
             setTimeout(() => {
               this.makeScreenshotOfIframe("right", "back").then(() => {
                 this.createANewPageFlipper("prev");
-                const underFlipperRight =
-                  document.querySelector("#UnderFlipperRight");
-                if (underFlipperRight) {
-                  underFlipperRight.remove();
+                const underFlipperLeft =
+                  document.querySelector("#UnderFlipperLeft");
+                if (underFlipperLeft) {
+                  underFlipperLeft.remove();
                 }
               });
             }, 400);
