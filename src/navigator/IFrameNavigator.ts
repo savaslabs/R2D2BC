@@ -98,7 +98,7 @@ import {
   ConsumptionModuleConfig,
 } from "../modules/consumption/ConsumptionModule";
 import KeyDownEvent = JQuery.KeyDownEvent;
-import { toPng } from "html-to-image";
+import { toBlob } from "html-to-image";
 
 export type GetContent = (href: string) => Promise<string>;
 export type GetContentBytesLength = (
@@ -2390,7 +2390,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   underFlipperLeft.remove();
                 }
               });
-            }, 400);
+            }, 250);
           });
         });
       });
@@ -2413,7 +2413,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   underFlipperRight.remove();
                 }
               });
-            }, 400);
+            }, 200);
           });
         });
       });
@@ -3759,31 +3759,36 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             iframeElement.contentDocument ||
             iframeElement.contentWindow.document;
 
-          toPng(iframeDocument.body)
-            .then((dataUrl) => {
-              const screenshotImage = document.createElement("img");
-              screenshotImage.src = dataUrl;
-              console.log(screenshotImage);
+          toBlob(iframeDocument.body, { quality: 1, pixelRatio: 2 })
+            .then((blob) => {
+              if (blob) {
+                const screenshotImage = document.createElement("img");
+                const url = URL.createObjectURL(blob);
+                screenshotImage.src = url;
+                console.log(screenshotImage);
 
-              // Save the screenshot to the appropriate variable based on the target
-              switch (target) {
-                case "front":
-                  this.theFlipFrontClone = screenshotImage;
-                  break;
-                case "back":
-                  this.theFlipBackClone = screenshotImage;
-                  break;
-                case "left":
-                  this.theUnderLeftClone = screenshotImage;
-                  console.log(this.theUnderLeftClone);
-                  break;
-                case "right":
-                  this.theUnderRightClone = screenshotImage;
-                  break;
-                default:
-                  console.error("Invalid target specified.");
+                // Save the screenshot to the appropriate variable based on the target
+                switch (target) {
+                  case "front":
+                    this.theFlipFrontClone = screenshotImage;
+                    break;
+                  case "back":
+                    this.theFlipBackClone = screenshotImage;
+                    break;
+                  case "left":
+                    this.theUnderLeftClone = screenshotImage;
+                    console.log(this.theUnderLeftClone);
+                    break;
+                  case "right":
+                    this.theUnderRightClone = screenshotImage;
+                    break;
+                  default:
+                    console.error("Invalid target specified.");
+                }
+                resolve(); // Resolve the promise when the screenshot is successfully captured
+              } else {
+                reject(new Error("Blob is null or undefined."));
               }
-              resolve(); // Resolve the promise when the screenshot is successfully captured
             })
             .catch((error) => {
               console.error(

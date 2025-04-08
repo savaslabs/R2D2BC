@@ -1,21 +1,20 @@
 $z-underflipper: 999;
 $z-index-flipper: 1000;
 $flip-perspective: 400dvw;
+.content#root {
+  overflow: hidden;
+}
+
+.both-pages-display {
+  .left-page-display,
+  .right-page-display {
+    clip-path: unset !important;
+    box-shadow: unset !important;
+  }
+}
 
 .page-is-flipping {
   overflow: hidden;
-
-  // .under-flipper {
-  //   &.under-flipper-left {
-  //     &:after {
-  //       transform: translateX(0);
-  //       background-color: rgba(0, 0, 0, 0.5);
-  //     }
-  //   }
-  //   &.under-flipper-right {
-  //     background-color: beige;
-  //   }
-  // }
 
   &.flipping-to-next {
     .under-flipper {
@@ -45,6 +44,16 @@ $flip-perspective: 400dvw;
   display: flex;
   align-items: center;
   justify-content: center;
+  &:after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transition:
+      background 1s linear,
+      transform 2s ease-in-out;
+    transition-delay: 1.2s, 0.5s;
+    background-color: rgba(0, 0, 0, 0.1);
+  }
   img {
     position: absolute;
     inset: 0;
@@ -56,30 +65,14 @@ $flip-perspective: 400dvw;
     background-color: beige;
     overflow: hidden;
     &:after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      transition:
-        background 1s linear,
-        transform 2s ease-in-out;
-      transition-delay: 1.2s, 0.5s;
       transform: translateX(120%);
-      background-color: rgba(0, 0, 0, 0.1);
     }
   }
   &.under-flipper-right {
     background-color: beige;
     overflow: hidden;
     &:after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      transition:
-        background 1s linear,
-        transform 2s ease-in-out;
-      transition-delay: 1.2s, 0.5s;
       transform: translateX(-120%);
-      background-color: rgba(0, 0, 0, 0.1);
     }
   }
 }
