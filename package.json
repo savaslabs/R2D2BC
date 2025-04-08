@@ -1,16 +1,13 @@
 {
-  "name": "@d-i-t-a/reader",
-  "version": "2.4.10",
-  "description": "A viewer application for EPUB files.",
-  "repository": "https://github.com/d-i-t-a/R2D2BC",
+  "name": "@savaslabs/reader",
+  "version": "2.4.11",
+  "description": "A viewer application for EPUB files forked from @d-i-t-a/reader.",
+  "repository": "https://github.com/savaslabs/R2D2BC",
   "license": "Apache-2.0",
   "main": "dist/esm/index.js",
   "typings": "dist/types/index.d.ts",
   "engines": {
     "node": ">=16"
-  },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "prepare": "npm run build",
@@ -144,5 +141,8 @@
   },
   "@parcel/resolver-default": {
     "packageExports": true
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
