@@ -2745,7 +2745,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           (parseInt(getComputedStyle(iframeParent).height) - 100) /
           parseInt(height.toString().replace("px", ""));
         var scale = Math.min(widthRatio, heightRatio);
-        iframeParent.style.scale = scale.toString();
+        iframeParent.style.transform = "scale(" + scale + ")";
 
         for (const iframe of this.iframes) {
           iframe.style.height = height;
