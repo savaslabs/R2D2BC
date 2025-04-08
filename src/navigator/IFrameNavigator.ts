@@ -2376,67 +2376,49 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   previousPage(): any {
-    this.anotherAnonymousFunction();
-    //this.handlePreviousPageClick(undefined);
+    this.makeScreenshotOfIframe("left", "left").then(() => {
+      this.makeScreenshotOfIframe("right", "right").then(() => {
+        this.makeScreenshotOfIframe("left", "front").then(() => {
+          this.createUnderPageFlippers().then(() => {
+            //this.handleNextPageClick(undefined);
+            this.handlePreviousPageClick(undefined);
+            setTimeout(() => {
+              this.makeScreenshotOfIframe("right", "back").then(() => {
+                this.createANewPageFlipper();
+                const underFlipperRight =
+                  document.querySelector("#UnderFlipperRight");
+                if (underFlipperRight) {
+                  underFlipperRight.remove();
+                }
+              });
+            }, 400);
+          });
+        });
+      });
+    });
   }
   nextPage(): any {
     // Create screenshots of the first spread, which we'll use later.
-    this.makeScreenshotOfIframe("left", "left");
-    this.makeScreenshotOfIframe("right", "right");
-    this.makeScreenshotOfIframe("right", "front");
 
-    setTimeout(() => {
-      // Make a spread to lay on top of the "real" spread
-      // (this duplicates what you're currently looking at, so you don't notice the weird stuff we're doing underneath)
-      this.createUnderPageFlippers();
-
-      setTimeout(() => {
-        // Okay, now advance to the second spread.
-        this.handleNextPageClick(undefined);
-
-        setTimeout(() => {
-          // Make a screenshot of the left page, which we'll use as the other half of our flipper.
-          this.makeScreenshotOfIframe("left", "back");
-
-          setTimeout(() => {
-            // Create a page flipper with the screenshots we already took.
-            this.createANewPageFlipper();
-            // And now remove the right side of the flipper, as it is unnecessary.
-            const underFlipperRight =
-              document.querySelector("#UnderFlipperRight");
-            if (underFlipperRight) {
-              underFlipperRight.remove();
-            }
-          }, 300);
-        }, 300);
-      }, 200);
-    }, 300);
-
-    // setTimeout(() => {
-    //   this.handleNextPageClick(undefined);
-    //   setTimeout(() => {
-    //     this.makeScreenshotOfIframe("left", "back");
-    //     this.createANewPageFlipper();
-    //     const underFlipperRight = document.querySelector("#UnderFlipperRight");
-    //     if (underFlipperRight) {
-    //       underFlipperRight.remove();
-    //     }
-    //   }, 900);
-    // }, 200);
-
-    // this.makeScreenshotOfIframe("left", "left");
-    // this.makeScreenshotOfIframe("right", "front");
-
-    // setTimeout(() => {
-    //   this.makeScreenshotOfIframe("right", "right");
-    //   this.makeScreenshotOfIframe("left", "back");
-    //   setTimeout(() => {
-    //     this.createANewPageFlipper();
-    //   }, 300);
-    // }, 500);
-    // setTimeout(() => {
-    //   this.handleNextPageClick(undefined);
-    // }, 100);
+    this.makeScreenshotOfIframe("left", "left").then(() => {
+      this.makeScreenshotOfIframe("right", "right").then(() => {
+        this.makeScreenshotOfIframe("right", "front").then(() => {
+          this.createUnderPageFlippers().then(() => {
+            this.handleNextPageClick(undefined);
+            setTimeout(() => {
+              this.makeScreenshotOfIframe("left", "back").then(() => {
+                this.createANewPageFlipper();
+                const underFlipperRight =
+                  document.querySelector("#UnderFlipperRight");
+                if (underFlipperRight) {
+                  underFlipperRight.remove();
+                }
+              });
+            }, 400);
+          });
+        });
+      });
+    });
   }
   previousResource(): any {
     this.handlePreviousChapterClick(undefined);
@@ -3598,58 +3580,67 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
-  createUnderPageFlippers() {
-    const createUnderFlipper = (side: "left" | "right") => {
-      // Determine properties based on the side
+  createUnderPageFlippers(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const createUnderFlipper = (side: "left" | "right") => {
+        // Determine properties based on the side
+        let iframeSelector: string, newDivId: string, newDivClass: string;
+        if (side === "left") {
+          iframeSelector = "#LeftPageIframe";
+          newDivId = "UnderFlipperLeft";
+          newDivClass = "under-flipper-left";
+        } else {
+          iframeSelector = "#RightPageIframe";
+          newDivId = "UnderFlipperRight";
+          newDivClass = "under-flipper-right";
+        }
 
-      let iframeSelector: string, newDivId: string, newDivClass: string;
-      if (side === "left") {
-        iframeSelector = "#LeftPageIframe";
-        newDivId = "UnderFlipperLeft";
-        newDivClass = "under-flipper-left";
-      } else {
-        iframeSelector = "#RightPageIframe";
-        newDivId = "UnderFlipperRight";
-        newDivClass = "under-flipper-right";
+        // Create the flipper container
+        const underFlipper = document.createElement("div");
+        underFlipper.id = newDivId;
+        underFlipper.classList.add("under-flipper", newDivClass);
+
+        // Get the dimensions and position of the iframe
+        const iframe = document.querySelector(
+          iframeSelector
+        ) as HTMLIFrameElement;
+
+        if (iframe) {
+          const rect = iframe.getBoundingClientRect();
+          underFlipper.style.top = `${rect.top}px`;
+          underFlipper.style.left = `${rect.left}px`;
+          underFlipper.style.width = `${rect.width}px`;
+          underFlipper.style.height = `${rect.height}px`;
+        } else {
+          console.error(`${iframeSelector} not found or inaccessible.`);
+          reject(new Error(`${iframeSelector} not found or inaccessible.`));
+          return;
+        }
+
+        if (side === "left") {
+          console.log(this.theUnderLeftClone);
+          if (this.theUnderLeftClone) {
+            underFlipper.append(this.theUnderLeftClone);
+          }
+        }
+        if (side === "right") {
+          console.log(this.theUnderRightClone);
+          if (this.theUnderRightClone) {
+            underFlipper.append(this.theUnderRightClone);
+          }
+        }
+
+        document.body.appendChild(underFlipper);
+      };
+
+      try {
+        createUnderFlipper("left");
+        createUnderFlipper("right");
+        resolve();
+      } catch (error) {
+        reject(error);
       }
-
-      // Create the flipper container
-      const underFlipper = document.createElement("div");
-      underFlipper.id = newDivId;
-      underFlipper.classList.add("under-flipper", newDivClass);
-      //underFlipper.textContent = textContent;
-      // if (this.theFlipFrontClone) {
-      //   underFlipper.append(this.theFlipFrontClone);
-      // }
-
-      // Get the dimensions and position of the iframe
-      const iframe = document.querySelector(
-        iframeSelector
-      ) as HTMLIFrameElement;
-
-      if (iframe) {
-        const rect = iframe.getBoundingClientRect();
-        underFlipper.style.top = `${rect.top}px`;
-        underFlipper.style.left = `${rect.left}px`;
-        underFlipper.style.width = `${rect.width}px`;
-        underFlipper.style.height = `${rect.height}px`;
-      } else {
-        console.error(`${iframeSelector} not found or inaccessible.`);
-      }
-
-      if (side === "left") {
-        console.log(this.theUnderLeftClone);
-        underFlipper.append(this.theUnderLeftClone);
-      }
-      if (side === "right") {
-        console.log(this.theUnderRightClone);
-        underFlipper.append(this.theUnderRightClone);
-      }
-
-      document.body.appendChild(underFlipper);
-    };
-    createUnderFlipper("left");
-    createUnderFlipper("right");
+    });
   }
 
   createANewPageFlipper(): void {
@@ -3790,58 +3781,66 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   makeScreenshotOfIframe(
     side: "left" | "right",
     target: "front" | "back" | "left" | "right"
-  ) {
-    const iframeSelector =
-      side === "right" ? "#RightPageIframe" : "#LeftPageIframe";
-    const iframeElement = document.querySelector(
-      iframeSelector
-    ) as HTMLIFrameElement;
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const iframeSelector =
+        side === "right" ? "#RightPageIframe" : "#LeftPageIframe";
+      const iframeElement = document.querySelector(
+        iframeSelector
+      ) as HTMLIFrameElement;
 
-    if (iframeElement && iframeElement.contentWindow) {
-      try {
-        const iframeDocument =
-          iframeElement.contentDocument || iframeElement.contentWindow.document;
+      if (iframeElement && iframeElement.contentWindow) {
+        try {
+          const iframeDocument =
+            iframeElement.contentDocument ||
+            iframeElement.contentWindow.document;
 
-        html2canvas(iframeDocument.body)
-          .then((canvas) => {
-            const screenshotImage = document.createElement("img");
-            screenshotImage.src = canvas.toDataURL("image/png");
-            console.log(screenshotImage);
+          html2canvas(iframeDocument.body)
+            .then((canvas) => {
+              const screenshotImage = document.createElement("img");
+              screenshotImage.src = canvas.toDataURL("image/png");
+              console.log(screenshotImage);
 
-            // Save the screenshot to the appropriate variable based on the target
-            switch (target) {
-              case "front":
-                this.theFlipFrontClone = screenshotImage;
-                break;
-              case "back":
-                this.theFlipBackClone = screenshotImage;
-                break;
-              case "left":
-                this.theUnderLeftClone = screenshotImage;
-                console.log(this.theUnderLeftClone);
-                break;
-              case "right":
-                this.theUnderRightClone = screenshotImage;
-                break;
-              default:
-                console.error("Invalid target specified.");
-            }
-          })
-          .catch((error) => {
-            console.error(
-              `Error capturing screenshot of ${iframeSelector}:`,
-              error
-            );
-          });
-      } catch (error) {
-        console.error(
-          "Unable to access iframe content. Ensure it is same-origin.",
-          error
-        );
+              // Save the screenshot to the appropriate variable based on the target
+              switch (target) {
+                case "front":
+                  this.theFlipFrontClone = screenshotImage;
+                  break;
+                case "back":
+                  this.theFlipBackClone = screenshotImage;
+                  break;
+                case "left":
+                  this.theUnderLeftClone = screenshotImage;
+                  console.log(this.theUnderLeftClone);
+                  break;
+                case "right":
+                  this.theUnderRightClone = screenshotImage;
+                  break;
+                default:
+                  console.error("Invalid target specified.");
+              }
+              resolve(); // Resolve the promise when the screenshot is successfully captured
+            })
+            .catch((error) => {
+              console.error(
+                `Error capturing screenshot of ${iframeSelector}:`,
+                error
+              );
+              reject(error); // Reject the promise if an error occurs
+            });
+        } catch (error) {
+          console.error(
+            "Unable to access iframe content. Ensure it is same-origin.",
+            error
+          );
+          reject(error); // Reject the promise if an error occurs
+        }
+      } else {
+        const errorMessage = `${iframeSelector} not found or inaccessible.`;
+        console.error(errorMessage);
+        reject(new Error(errorMessage)); // Reject the promise if the iframe is not found
       }
-    } else {
-      console.error(`${iframeSelector} not found or inaccessible.`);
-    }
+    });
   }
 
   createPageFlipper() {
