@@ -2380,11 +2380,63 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     //this.handlePreviousPageClick(undefined);
   }
   nextPage(): any {
-    //alert("hi");
-    //this.cloneAnIframe("left");
+    // Create screenshots of the first spread, which we'll use later.
+    this.makeScreenshotOfIframe("left", "left");
+    this.makeScreenshotOfIframe("right", "right");
+    this.makeScreenshotOfIframe("right", "front");
 
-    //return;
-    this.handleNextPageClick(undefined);
+    setTimeout(() => {
+      // Make a spread to lay on top of the "real" spread
+      // (this duplicates what you're currently looking at, so you don't notice the weird stuff we're doing underneath)
+      this.createUnderPageFlippers();
+
+      setTimeout(() => {
+        // Okay, now advance to the second spread.
+        this.handleNextPageClick(undefined);
+
+        setTimeout(() => {
+          // Make a screenshot of the left page, which we'll use as the other half of our flipper.
+          this.makeScreenshotOfIframe("left", "back");
+
+          setTimeout(() => {
+            // Create a page flipper with the screenshots we already took.
+            this.createANewPageFlipper();
+            // And now remove the right side of the flipper, as it is unnecessary.
+            const underFlipperRight =
+              document.querySelector("#UnderFlipperRight");
+            if (underFlipperRight) {
+              underFlipperRight.remove();
+            }
+          }, 300);
+        }, 300);
+      }, 200);
+    }, 300);
+
+    // setTimeout(() => {
+    //   this.handleNextPageClick(undefined);
+    //   setTimeout(() => {
+    //     this.makeScreenshotOfIframe("left", "back");
+    //     this.createANewPageFlipper();
+    //     const underFlipperRight = document.querySelector("#UnderFlipperRight");
+    //     if (underFlipperRight) {
+    //       underFlipperRight.remove();
+    //     }
+    //   }, 900);
+    // }, 200);
+
+    // this.makeScreenshotOfIframe("left", "left");
+    // this.makeScreenshotOfIframe("right", "front");
+
+    // setTimeout(() => {
+    //   this.makeScreenshotOfIframe("right", "right");
+    //   this.makeScreenshotOfIframe("left", "back");
+    //   setTimeout(() => {
+    //     this.createANewPageFlipper();
+    //   }, 300);
+    // }, 500);
+    // setTimeout(() => {
+    //   this.handleNextPageClick(undefined);
+    // }, 100);
   }
   previousResource(): any {
     this.handlePreviousChapterClick(undefined);
@@ -3272,13 +3324,13 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   private showLoadingMessageAfterDelay() {
     this.isLoading = true;
-    if (this.isLoading && this.loadingMessage) {
-      this.loadingMessage.style.display = "block";
-      this.loadingMessage.classList.add("is-loading");
-    }
-    if (this.mediaOverlayModule !== undefined) {
-      this.mediaOverlayModule.settings.resourceReady = false;
-    }
+    // if (this.isLoading && this.loadingMessage) {
+    //   this.loadingMessage.style.display = "block";
+    //   this.loadingMessage.classList.add("is-loading");
+    // }
+    // if (this.mediaOverlayModule !== undefined) {
+    //   this.mediaOverlayModule.settings.resourceReady = false;
+    // }
   }
 
   private hideIframeContents() {
@@ -3297,6 +3349,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         this.loadingMessage.style.display = "none";
         this.loadingMessage.classList.remove("is-loading");
       }
+      console.log("hide loading message");
       if (this.view?.layout !== "fixed") {
         if (this.view?.atStart() && this.view?.atEnd()) {
           if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
@@ -3311,7 +3364,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       }
       if (this.api?.resourceReady) this.api?.resourceReady();
       this.emit("resource.ready");
-    }, 150);
+    }, 350);
   }
 
   private saveCurrentReadingPosition() {
@@ -3549,30 +3602,25 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const createUnderFlipper = (side: "left" | "right") => {
       // Determine properties based on the side
 
-      let iframeSelector: string,
-        newDivId: string,
-        newDivClass: string,
-        textContent: string;
+      let iframeSelector: string, newDivId: string, newDivClass: string;
       if (side === "left") {
         iframeSelector = "#LeftPageIframe";
         newDivId = "UnderFlipperLeft";
         newDivClass = "under-flipper-left";
-        textContent = "UNDER FLIPPER LEFT";
       } else {
         iframeSelector = "#RightPageIframe";
         newDivId = "UnderFlipperRight";
         newDivClass = "under-flipper-right";
-        textContent = "UNDER FLIPPER RIGHT";
       }
 
       // Create the flipper container
       const underFlipper = document.createElement("div");
       underFlipper.id = newDivId;
       underFlipper.classList.add("under-flipper", newDivClass);
-      underFlipper.textContent = textContent;
-      if (this.theFlipFrontClone) {
-        underFlipper.append(this.theFlipFrontClone);
-      }
+      //underFlipper.textContent = textContent;
+      // if (this.theFlipFrontClone) {
+      //   underFlipper.append(this.theFlipFrontClone);
+      // }
 
       // Get the dimensions and position of the iframe
       const iframe = document.querySelector(
@@ -3589,14 +3637,18 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         console.error(`${iframeSelector} not found or inaccessible.`);
       }
 
-      // Append the flipper to the body
+      if (side === "left") {
+        console.log(this.theUnderLeftClone);
+        underFlipper.append(this.theUnderLeftClone);
+      }
+      if (side === "right") {
+        console.log(this.theUnderRightClone);
+        underFlipper.append(this.theUnderRightClone);
+      }
+
       document.body.appendChild(underFlipper);
     };
-
-    // Create the left UnderFlipper
     createUnderFlipper("left");
-
-    // Create the right flipper
     createUnderFlipper("right");
   }
 
@@ -3614,7 +3666,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const rect = rightPageIframe.getBoundingClientRect();
 
     // Call createUnderPageFlippers to create the under page flipper
-    this.createUnderPageFlippers();
+    //this.createUnderPageFlippers();
 
     // Create the #NewPageFlipper container
     const newPageFlipper = document.createElement("div");
@@ -3728,67 +3780,14 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   anotherAnonymousFunction() {
-    this.cloneAnIframe("right", "front");
-    this.cloneAnIframe("left", "back");
+    this.makeScreenshotOfIframe("right", "front");
+    this.makeScreenshotOfIframe("left", "back");
     setTimeout(() => {
       this.createANewPageFlipper();
     }, 250);
   }
 
-  yetAnotherFunction() {
-    const rightPageIframe = document.querySelector(
-      "#RightPageIframe"
-    ) as HTMLIFrameElement;
-    const leftPageIframe = document.querySelector(
-      "#LeftPageIframe"
-    ) as HTMLIFrameElement;
-
-    if (rightPageIframe && rightPageIframe.contentWindow) {
-      try {
-        const iframeDocument =
-          rightPageIframe.contentDocument ||
-          rightPageIframe.contentWindow.document;
-        html2canvas(iframeDocument.body)
-          .then((rightCanvas) => {
-            const rightImage = document.createElement("img");
-            rightImage.src = rightCanvas.toDataURL("image/png");
-            this.theFlipFrontClone = rightImage;
-            this.isFlipRightCloned = true;
-
-            if (leftPageIframe && leftPageIframe.contentWindow) {
-              const leftIframeDocument =
-                leftPageIframe.contentDocument ||
-                leftPageIframe.contentWindow.document;
-              html2canvas(leftIframeDocument.body)
-                .then((leftCanvas) => {
-                  const leftImage = document.createElement("img");
-                  leftImage.src = leftCanvas.toDataURL("image/png");
-                  this.theUnderLeftClone = leftImage;
-                  this.isUnderLeftCloned = true;
-                  //this.createANewPageFlipper();
-                })
-                .catch((error) => {
-                  console.error("Error capturing left page screenshot:", error);
-                });
-            } else {
-              console.error("#LeftPageIframe not found or inaccessible.");
-            }
-          })
-          .catch((error) => {
-            console.error("Error capturing right page screenshot:", error);
-          });
-      } catch (error) {
-        console.error(
-          "Unable to access iframe content. Ensure it is same-origin.",
-          error
-        );
-      }
-    } else {
-      console.error("#RightPageIframe not found or inaccessible.");
-    }
-  }
-
-  cloneAnIframe(
+  makeScreenshotOfIframe(
     side: "left" | "right",
     target: "front" | "back" | "left" | "right"
   ) {
@@ -3807,6 +3806,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           .then((canvas) => {
             const screenshotImage = document.createElement("img");
             screenshotImage.src = canvas.toDataURL("image/png");
+            console.log(screenshotImage);
 
             // Save the screenshot to the appropriate variable based on the target
             switch (target) {
@@ -3818,6 +3818,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                 break;
               case "left":
                 this.theUnderLeftClone = screenshotImage;
+                console.log(this.theUnderLeftClone);
                 break;
               case "right":
                 this.theUnderRightClone = screenshotImage;

@@ -24,6 +24,14 @@ $flip-perspective: 400dvw;
   display: flex;
   align-items: center;
   justify-content: center;
+  //opacity: 0.5;
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+  }
   &.under-flipper-left {
     background-color: beige;
     overflow: hidden;
