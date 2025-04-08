@@ -98,7 +98,7 @@ import {
   ConsumptionModuleConfig,
 } from "../modules/consumption/ConsumptionModule";
 import KeyDownEvent = JQuery.KeyDownEvent;
-import html2canvas from "html2canvas";
+import { toPng } from "html-to-image";
 
 export type GetContent = (href: string) => Promise<string>;
 export type GetContentBytesLength = (
@@ -3759,10 +3759,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             iframeElement.contentDocument ||
             iframeElement.contentWindow.document;
 
-          html2canvas(iframeDocument.body)
-            .then((canvas) => {
+          toPng(iframeDocument.body)
+            .then((dataUrl) => {
               const screenshotImage = document.createElement("img");
-              screenshotImage.src = canvas.toDataURL("image/png");
+              screenshotImage.src = dataUrl;
               console.log(screenshotImage);
 
               // Save the screenshot to the appropriate variable based on the target
