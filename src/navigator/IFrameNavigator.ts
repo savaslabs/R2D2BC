@@ -3728,11 +3728,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   anotherAnonymousFunction() {
-    this.cloneAnIframe("right", "back");
-    this.cloneAnIframe("left", "front");
+    this.cloneAnIframe("right", "front");
+    this.cloneAnIframe("left", "back");
     setTimeout(() => {
       this.createANewPageFlipper();
-    }, 1000);
+    }, 250);
   }
 
   yetAnotherFunction() {

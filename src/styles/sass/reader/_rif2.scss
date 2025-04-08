@@ -1,5 +1,6 @@
 $z-underflipper: 999;
 $z-index-flipper: 1000;
+$flip-perspective: 400dvw;
 
 .page-is-flipping {
   overflow: hidden;
@@ -7,6 +8,7 @@ $z-index-flipper: 1000;
   .under-flipper {
     &.under-flipper-left {
       &:after {
+        transform: translateX(0);
         background-color: rgba(0, 0, 0, 0.5);
       }
     }
@@ -24,13 +26,17 @@ $z-index-flipper: 1000;
   justify-content: center;
   &.under-flipper-left {
     background-color: beige;
+    overflow: hidden;
     &:after {
       content: "";
       position: absolute;
       inset: 0;
-      transition: all 1s linear;
-      transition-delay: 1.2s;
-      background-color: rgba(0, 0, 0, 0.01);
+      transition:
+        background 1s linear,
+        transform 2s ease-in-out;
+      transition-delay: 1.2s, 0.5s;
+      transform: translateX(120%);
+      background-color: rgba(0, 0, 0, 0.1);
     }
   }
   &.under-flipper-right {
@@ -40,7 +46,7 @@ $z-index-flipper: 1000;
 
 #NewPageFlipper {
   position: absolute;
-  perspective: 1000px;
+  perspective: $flip-perspective;
   z-index: $z-index-flipper;
 
   .new-page-flipper-inner {
