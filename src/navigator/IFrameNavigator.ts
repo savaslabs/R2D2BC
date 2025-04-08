@@ -2384,7 +2384,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.handlePreviousPageClick(undefined);
             setTimeout(() => {
               this.makeScreenshotOfIframe("right", "back").then(() => {
-                this.createANewPageFlipper();
+                this.createANewPageFlipper("prev");
                 const underFlipperRight =
                   document.querySelector("#UnderFlipperRight");
                 if (underFlipperRight) {
@@ -2407,7 +2407,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.handleNextPageClick(undefined);
             setTimeout(() => {
               this.makeScreenshotOfIframe("left", "back").then(() => {
-                this.createANewPageFlipper();
+                this.createANewPageFlipper("next");
                 const underFlipperRight =
                   document.querySelector("#UnderFlipperRight");
                 if (underFlipperRight) {
@@ -3643,21 +3643,20 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     });
   }
 
-  createANewPageFlipper(): void {
-    const rightPageIframe = document.querySelector(
-      "#RightPageIframe"
+  createANewPageFlipper(direction: "next" | "prev"): void {
+    const iframeSelector =
+      direction === "next" ? "#RightPageIframe" : "#LeftPageIframe";
+    const targetIframe = document.querySelector(
+      iframeSelector
     ) as HTMLIFrameElement;
 
-    if (!rightPageIframe) {
-      console.error("#RightPageIframe not found or inaccessible.");
+    if (!targetIframe) {
+      console.error(`${iframeSelector} not found or inaccessible.`);
       return;
     }
 
-    // Get the dimensions and position of #RightPageIframe
-    const rect = rightPageIframe.getBoundingClientRect();
-
-    // Call createUnderPageFlippers to create the under page flipper
-    //this.createUnderPageFlippers();
+    // Get the dimensions and position of the target iframe
+    const rect = targetIframe.getBoundingClientRect();
 
     // Create the #NewPageFlipper container
     const newPageFlipper = document.createElement("div");
@@ -3667,6 +3666,13 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     newPageFlipper.style.left = `${rect.left}px`;
     newPageFlipper.style.width = `${rect.width}px`;
     newPageFlipper.style.height = `${rect.height}px`;
+
+    // Add a class based on the direction
+    if (direction === "next") {
+      newPageFlipper.classList.add("flipping-to-next");
+    } else if (direction === "prev") {
+      newPageFlipper.classList.add("flipping-to-prev");
+    }
 
     // Create the FLIP FRONT div
     const flipFront = document.createElement("div");
@@ -3680,7 +3686,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const flipBack = document.createElement("div");
     flipBack.id = "NewPageFlipperBack";
     flipBack.className = "new-page-flipper-back";
-    flipBack.textContent = "FLIP BACK";
     if (this.theFlipBackClone) {
       flipBack.append(this.theFlipBackClone);
     }
@@ -3697,9 +3702,16 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     // Add the animation to simulate the page turn
     setTimeout(() => {
       document.body.classList.add("page-is-flipping");
-      flipInner.style.transform = "rotateY(-180deg)";
+
+      if (direction === "next") {
+        flipInner.style.transform = "rotateY(-180deg)";
+        document.body.classList.add("flipping-to-next");
+      }
+      if (direction === "prev") {
+        flipInner.style.transform = "rotateY(180deg)";
+        document.body.classList.add("flipping-to-prev");
+      }
       setTimeout(() => {
-        document.body.classList.add("page-is-flipping");
         this.removeNewPageFlipper();
       }, 3200);
     }, 100); // Delay to ensure the element is added to the DOM before animating
@@ -3724,58 +3736,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     if (underFlipperRight) {
       underFlipperRight.remove();
     }
-    document.body.classList.remove("page-is-flipping");
-  }
-
-  leftSideScreenshotTest() {
-    const leftPageIframe = document.querySelector(
-      "#LeftPageIframe"
-    ) as HTMLIFrameElement;
-
-    if (leftPageIframe && leftPageIframe.contentWindow) {
-      try {
-        const iframeDocument =
-          leftPageIframe.contentDocument ||
-          leftPageIframe.contentWindow.document;
-
-        html2canvas(iframeDocument.body)
-          .then((canvas) => {
-            const screenshotImage = document.createElement("img");
-            screenshotImage.src = canvas.toDataURL("image/png");
-            screenshotImage.style.position = "fixed";
-            screenshotImage.style.top = "50%";
-            screenshotImage.style.left = "50%";
-            screenshotImage.style.transform = "translate(-50%, -50%)";
-            screenshotImage.style.zIndex = "9999";
-            screenshotImage.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-            screenshotImage.style.border = "2px solid #ccc";
-            screenshotImage.style.borderRadius = "8px";
-
-            document.body.appendChild(screenshotImage);
-          })
-          .catch((error) => {
-            console.error(
-              "Error capturing screenshot of #LeftPageIframe:",
-              error
-            );
-          });
-      } catch (error) {
-        console.error(
-          "Unable to access iframe content. Ensure it is same-origin.",
-          error
-        );
-      }
-    } else {
-      console.error("#LeftPageIframe not found or inaccessible.");
-    }
-  }
-
-  anotherAnonymousFunction() {
-    this.makeScreenshotOfIframe("right", "front");
-    this.makeScreenshotOfIframe("left", "back");
-    setTimeout(() => {
-      this.createANewPageFlipper();
-    }, 250);
+    document.body.classList.remove(
+      "page-is-flipping",
+      "flipping-to-next",
+      "flipping-to-prev"
+    );
   }
 
   makeScreenshotOfIframe(
