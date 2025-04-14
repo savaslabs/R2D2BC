@@ -916,7 +916,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           menuBookmark.parentElement?.style.setProperty("display", "none");
       }
 
-      // These divs need to have ids and classes, it is driving me nuts.
+      // These divs need to have ids and classes
       const lastDiv = HTMLUtilities.findElement(
         mainElement,
         "main#iframe-wrapper > div:last-child"
@@ -945,6 +945,13 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           rightPageIframe.id = "RightPageIframe";
         }
       }
+
+      // Add a notice for a page flip, which will get a class applied.
+      const pageTurningNotice = document.createElement("aside");
+      pageTurningNotice.className = "page-turning-notice";
+      pageTurningNotice.id = "PageTurningNotice";
+      pageTurningNotice.textContent = "page is turning";
+      document.body.appendChild(pageTurningNotice);
 
       this.setupEvents();
 
@@ -2476,18 +2483,16 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   pageFlipNotice(verb: "hide" | "show") {
+    const pageTurningNotice = document.getElementById("PageTurningNotice");
     if (verb === "show") {
-      const pageTurningNotice = document.createElement("aside");
-      pageTurningNotice.className = "page-turning-notice";
-      pageTurningNotice.id = "PageTurningNotice";
-      pageTurningNotice.textContent = "page is turning";
-      document.body.appendChild(pageTurningNotice);
+      if (pageTurningNotice) {
+        pageTurningNotice.classList.add("visible");
+      }
       this.isPageFlippingRequested = true;
     }
     if (verb === "hide") {
-      const pageTurningNotice = document.getElementById("PageTurningNotice");
       if (pageTurningNotice) {
-        pageTurningNotice.remove();
+        pageTurningNotice.classList.remove("visible");
       }
       this.isPageFlippingRequested = false;
     }

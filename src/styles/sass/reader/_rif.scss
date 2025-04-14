@@ -35,15 +35,6 @@ main#iframe-wrapper {
   }
 }
 
-@keyframes notice-slide-in {
-  from {
-    transform: translateX(calc(100% + 10px));
-  }
-  to {
-    transform: translateX(0%);
-  }
-}
-
 aside.page-turning-notice {
   position: fixed;
   z-index: $z-flipper-notice;
@@ -56,12 +47,17 @@ aside.page-turning-notice {
   color: rgb(39, 37, 4);
   padding: 0.5em 1.25em;
   display: flex;
-  animation: notice-slide-in 0.6s ease-in-out forwards 1;
+  transform: translateX(calc(100% + 10px));
+  transition: transform 0.35s ease-in-out;
 
   &:after {
     content: ".";
     width: 0.5em;
     animation: dots-animation 1.5s steps(1, end) infinite;
+  }
+
+  &.visible {
+    transform: translateX(0%);
   }
 }
 
