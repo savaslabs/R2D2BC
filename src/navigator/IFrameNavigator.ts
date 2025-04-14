@@ -2372,10 +2372,12 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   previousPage(): any {
-    this.handlePreviousPageClick(undefined);
+    //this.handlePreviousPageClick(undefined);
+    this.previousResource();
   }
   nextPage(): any {
-    this.handleNextPageClick(undefined);
+    //this.handleNextPageClick(undefined);
+    this.nextResource();
   }
   previousResource(): any {
     if (this.isPageFlippingRequested) {
@@ -3780,7 +3782,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         this.removeNewPageFlipper();
         this.clearOutScreenshots();
         this.pageFlipNotice("hide");
-      }, 3200);
+      }, 1350);
     }, 100); // Delay to ensure the element is added to the DOM before animating
 
     // Append the inner container to #NewPageFlipper
