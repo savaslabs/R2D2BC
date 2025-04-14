@@ -2421,7 +2421,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   underFlipperLeft.remove();
                 }
               });
-            }, 350);
+            }, 225);
           });
         });
       });
@@ -2468,7 +2468,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   underFlipperRight.remove();
                 }
               });
-            }, 350);
+            }, 225);
           });
         });
       });
