@@ -2450,12 +2450,22 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const rightIframe = document.querySelector(
       "#RightPageIframe"
     ) as HTMLIFrameElement;
-    const isRightPageSourced =
-      rightIframe?.src.includes("http") || rightIframe?.src.includes("https");
+    let isRightPageSourced = false;
+    if (
+      rightIframe?.src &&
+      (rightIframe.src.includes("http") || rightIframe.src.includes("https"))
+    ) {
+      isRightPageSourced = true;
+    } else if (
+      !rightIframe?.src &&
+      (rightIframe?.contentDocument?.body?.childElementCount ?? 0) > 0
+    ) {
+      isRightPageSourced = true;
+    }
 
     if (!isRightPageSourced) {
       // There is no next page, ignore the request.
-      console.log("right page is sourced");
+      console.log("right page is not sourced");
       return false;
     }
 
