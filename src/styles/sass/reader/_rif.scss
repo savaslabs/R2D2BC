@@ -1,5 +1,6 @@
 $z-underflipper: 999;
 $z-index-flipper: 1000;
+$z-flipper-notice: 1001;
 $flip-perspective: 400dvw;
 .content#root {
   overflow: hidden;
@@ -45,11 +46,14 @@ main#iframe-wrapper {
 
 aside.page-turning-notice {
   position: fixed;
+  z-index: $z-flipper-notice;
   bottom: 10px;
   right: 10px;
   font-family: sans-serif;
-  font-weight: 600;
-  background-color: rgba(239, 232, 63, 0.5);
+  font-weight: 300;
+  font-size: 150%;
+  background-color: rgb(248, 245, 162);
+  color: rgb(39, 37, 4);
   padding: 0.5em 1.25em;
   display: flex;
   animation: notice-slide-in 0.6s ease-in-out forwards 1;
