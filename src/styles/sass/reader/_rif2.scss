@@ -4,12 +4,60 @@ $flip-perspective: 400dvw;
 .content#root {
   overflow: hidden;
 }
+main#iframe-wrapper {
+  overflow: hidden !important;
+}
 
 .both-pages-display {
-  .left-page-display,
-  .right-page-display {
-    clip-path: unset !important;
+  .left-page-display:has(iframe[src="about:blank"]) {
     box-shadow: unset !important;
+    clip-path: unset !important;
+  }
+  .right-page-display:has(iframe[src="about:blank"]) {
+    box-shadow: unset !important;
+    clip-path: unset !important;
+  }
+}
+
+@keyframes dots-animation {
+  0% {
+    content: ".";
+  }
+  33% {
+    content: "..";
+  }
+  66% {
+    content: "...";
+  }
+  100% {
+    content: ".";
+  }
+}
+
+@keyframes notice-slide-in {
+  from {
+    transform: translateX(calc(100% + 10px));
+  }
+  to {
+    transform: translateX(0%);
+  }
+}
+
+aside.page-turning-notice {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  font-family: sans-serif;
+  font-weight: 600;
+  background-color: rgba(239, 232, 63, 0.5);
+  padding: 0.5em 1.25em;
+  display: flex;
+  animation: notice-slide-in 0.6s ease-in-out forwards 1;
+
+  &:after {
+    content: ".";
+    width: 0.5em;
+    animation: dots-animation 1.5s steps(1, end) infinite;
   }
 }
 
@@ -62,14 +110,12 @@ $flip-perspective: 400dvw;
     object-fit: cover;
   }
   &.under-flipper-left {
-    background-color: beige;
     overflow: hidden;
     &:after {
       transform: translateX(120%);
     }
   }
   &.under-flipper-right {
-    background-color: beige;
     overflow: hidden;
     &:after {
       transform: translateX(-120%);
@@ -78,6 +124,7 @@ $flip-perspective: 400dvw;
 }
 
 #NewPageFlipper {
+  // margin-left: -1px;
   position: absolute;
   perspective: $flip-perspective;
   z-index: $z-index-flipper;

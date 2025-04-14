@@ -1630,10 +1630,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           }
         }
 
-        if (this.isPageFlippingRequested) {
-          this.cloneCurrentPage("left");
-          this.isPageFlippingRequested = false;
-        }
         this.hideLoadingMessage();
         this.showIframeContents(iframe);
 
@@ -2376,11 +2372,44 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   previousPage(): any {
+    this.handlePreviousPageClick(undefined);
+  }
+  nextPage(): any {
+    this.handleNextPageClick(undefined);
+  }
+  previousResource(): any {
+    if (this.isPageFlippingRequested) {
+      // Already flipping a page, ignore the request
+      return false;
+    }
+
+    // Figure out if the left and right pages are sourced from a URL or not
+    const leftIframe = document.querySelector(
+      "#LeftPageIframe"
+    ) as HTMLIFrameElement;
+    const isLeftPageSourced =
+      leftIframe?.src.includes("http") || leftIframe?.src.includes("https");
+    const rightIframe = document.querySelector(
+      "#RightPageIframe"
+    ) as HTMLIFrameElement;
+    const isRightPageSourced =
+      rightIframe?.src.includes("http") || rightIframe?.src.includes("https");
+
+    if (!isLeftPageSourced) {
+      // There is no previous page, ignore the request.
+      return false;
+    }
+
+    const rightSource = isRightPageSourced ? "right" : "empty";
+
+    this.clearOutScreenshots();
+    this.pageFlipNotice("show");
+
     this.makeScreenshotOfIframe("left", "left").then(() => {
-      this.makeScreenshotOfIframe("right", "right").then(() => {
+      this.makeScreenshotOfIframe(rightSource, "right").then(() => {
         this.makeScreenshotOfIframe("left", "front").then(() => {
           this.createUnderPageFlippers().then(() => {
-            this.handlePreviousPageClick(undefined);
+            this.handlePreviousChapterClick(undefined);
             setTimeout(() => {
               this.makeScreenshotOfIframe("right", "back").then(() => {
                 this.createANewPageFlipper("prev");
@@ -2390,20 +2419,44 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   underFlipperLeft.remove();
                 }
               });
-            }, 250);
+            }, 350);
           });
         });
       });
     });
   }
-  nextPage(): any {
-    // Create screenshots of the first spread, which we'll use later.
+  nextResource(): any {
+    if (this.isPageFlippingRequested) {
+      return false;
+    }
 
-    this.makeScreenshotOfIframe("left", "left").then(() => {
+    // Figure out if the left and right pages are sourced from a URL or not
+    const leftIframe = document.querySelector(
+      "#LeftPageIframe"
+    ) as HTMLIFrameElement;
+    const isLeftPageSourced =
+      leftIframe?.src.includes("http") || leftIframe?.src.includes("https");
+    const rightIframe = document.querySelector(
+      "#RightPageIframe"
+    ) as HTMLIFrameElement;
+    const isRightPageSourced =
+      rightIframe?.src.includes("http") || rightIframe?.src.includes("https");
+
+    if (!isRightPageSourced) {
+      // There is no next page, ignore the request.
+      return false;
+    }
+
+    this.clearOutScreenshots();
+    this.pageFlipNotice("show");
+
+    const leftSource = isLeftPageSourced ? "left" : "empty";
+
+    this.makeScreenshotOfIframe(leftSource, "left").then(() => {
       this.makeScreenshotOfIframe("right", "right").then(() => {
         this.makeScreenshotOfIframe("right", "front").then(() => {
           this.createUnderPageFlippers().then(() => {
-            this.handleNextPageClick(undefined);
+            this.handleNextChapterClick(undefined);
             setTimeout(() => {
               this.makeScreenshotOfIframe("left", "back").then(() => {
                 this.createANewPageFlipper("next");
@@ -2413,18 +2466,31 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
                   underFlipperRight.remove();
                 }
               });
-            }, 200);
+            }, 350);
           });
         });
       });
     });
   }
-  previousResource(): any {
-    this.handlePreviousChapterClick(undefined);
+
+  pageFlipNotice(verb: "hide" | "show") {
+    if (verb === "show") {
+      const pageTurningNotice = document.createElement("aside");
+      pageTurningNotice.className = "page-turning-notice";
+      pageTurningNotice.id = "PageTurningNotice";
+      pageTurningNotice.textContent = "page is turning";
+      document.body.appendChild(pageTurningNotice);
+      this.isPageFlippingRequested = true;
+    }
+    if (verb === "hide") {
+      const pageTurningNotice = document.getElementById("PageTurningNotice");
+      if (pageTurningNotice) {
+        pageTurningNotice.remove();
+      }
+      this.isPageFlippingRequested = false;
+    }
   }
-  nextResource(): any {
-    this.handleNextChapterClick(undefined);
-  }
+
   goTo(locator: Locator): any {
     let locations: Locations = locator.locations ?? { progression: 0 };
     if (locator.href.indexOf("#") !== -1) {
@@ -3712,6 +3778,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       }
       setTimeout(() => {
         this.removeNewPageFlipper();
+        this.clearOutScreenshots();
+        this.pageFlipNotice("hide");
       }, 3200);
     }, 100); // Delay to ensure the element is added to the DOM before animating
 
@@ -3742,72 +3810,121 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     );
   }
 
+  clearOutScreenshots() {
+    this.theFlipFrontClone = null;
+    this.theFlipBackClone = null;
+    this.theUnderLeftClone = null;
+    this.theUnderRightClone = null;
+  }
+
   makeScreenshotOfIframe(
-    side: "left" | "right",
+    side: "left" | "right" | "empty",
     target: "front" | "back" | "left" | "right"
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const iframeSelector =
-        side === "right" ? "#RightPageIframe" : "#LeftPageIframe";
-      const iframeElement = document.querySelector(
-        iframeSelector
-      ) as HTMLIFrameElement;
+      if (side === "empty") {
+        // Create a solid white PNG
+        const canvas = document.createElement("canvas");
+        canvas.width = 800; // Set desired width
+        canvas.height = 600; // Set desired height
+        const context = canvas.getContext("2d");
 
-      if (iframeElement && iframeElement.contentWindow) {
-        try {
-          const iframeDocument =
-            iframeElement.contentDocument ||
-            iframeElement.contentWindow.document;
+        if (context) {
+          context.fillStyle = "white";
+          context.fillRect(0, 0, canvas.width, canvas.height);
 
-          toBlob(iframeDocument.body, { quality: 1, pixelRatio: 2 })
-            .then((blob) => {
-              if (blob) {
-                const screenshotImage = document.createElement("img");
-                const url = URL.createObjectURL(blob);
-                screenshotImage.src = url;
-                console.log(screenshotImage);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const whiteImage = document.createElement("img");
+              const url = URL.createObjectURL(blob);
+              whiteImage.src = url;
 
-                // Save the screenshot to the appropriate variable based on the target
-                switch (target) {
-                  case "front":
-                    this.theFlipFrontClone = screenshotImage;
-                    break;
-                  case "back":
-                    this.theFlipBackClone = screenshotImage;
-                    break;
-                  case "left":
-                    this.theUnderLeftClone = screenshotImage;
-                    console.log(this.theUnderLeftClone);
-                    break;
-                  case "right":
-                    this.theUnderRightClone = screenshotImage;
-                    break;
-                  default:
-                    console.error("Invalid target specified.");
-                }
-                resolve(); // Resolve the promise when the screenshot is successfully captured
-              } else {
-                reject(new Error("Blob is null or undefined."));
+              // Save the white image to the appropriate variable based on the target
+              switch (target) {
+                case "front":
+                  this.theFlipFrontClone = whiteImage;
+                  break;
+                case "back":
+                  this.theFlipBackClone = whiteImage;
+                  break;
+                case "left":
+                  this.theUnderLeftClone = whiteImage;
+                  break;
+                case "right":
+                  this.theUnderRightClone = whiteImage;
+                  break;
+                default:
+                  console.error("Invalid target specified.");
               }
-            })
-            .catch((error) => {
-              console.error(
-                `Error capturing screenshot of ${iframeSelector}:`,
-                error
-              );
-              reject(error); // Reject the promise if an error occurs
-            });
-        } catch (error) {
-          console.error(
-            "Unable to access iframe content. Ensure it is same-origin.",
-            error
-          );
-          reject(error); // Reject the promise if an error occurs
+              resolve(); // Resolve the promise when the white image is successfully created
+            } else {
+              reject(new Error("Failed to create white PNG blob."));
+            }
+          });
+        } else {
+          reject(new Error("Failed to get canvas context."));
         }
       } else {
-        const errorMessage = `${iframeSelector} not found or inaccessible.`;
-        console.error(errorMessage);
-        reject(new Error(errorMessage)); // Reject the promise if the iframe is not found
+        const iframeSelector =
+          side === "right" ? "#RightPageIframe" : "#LeftPageIframe";
+        const iframeElement = document.querySelector(
+          iframeSelector
+        ) as HTMLIFrameElement;
+
+        if (iframeElement && iframeElement.contentWindow) {
+          try {
+            const iframeDocument =
+              iframeElement.contentDocument ||
+              iframeElement.contentWindow.document;
+
+            toBlob(iframeDocument.body, { quality: 1, pixelRatio: 2 })
+              .then((blob) => {
+                if (blob) {
+                  const screenshotImage = document.createElement("img");
+                  const url = URL.createObjectURL(blob);
+                  screenshotImage.src = url;
+
+                  // Save the screenshot to the appropriate variable based on the target
+                  switch (target) {
+                    case "front":
+                      this.theFlipFrontClone = screenshotImage;
+                      break;
+                    case "back":
+                      this.theFlipBackClone = screenshotImage;
+                      break;
+                    case "left":
+                      this.theUnderLeftClone = screenshotImage;
+                      break;
+                    case "right":
+                      this.theUnderRightClone = screenshotImage;
+                      break;
+                    default:
+                      console.error("Invalid target specified.");
+                  }
+                  resolve(); // Resolve the promise when the screenshot is successfully captured
+                } else {
+                  reject(new Error("Blob is null or undefined."));
+                }
+              })
+              .catch((error) => {
+                console.error(
+                  `Error capturing screenshot of ${iframeSelector}:`,
+                  error
+                );
+                reject(error); // Reject the promise if an error occurs
+              });
+          } catch (error) {
+            console.error(
+              "Unable to access iframe content. Ensure it is same-origin.",
+              error
+            );
+            reject(error); // Reject the promise if an error occurs
+          }
+        } else {
+          const errorMessage = `${iframeSelector} not found or inaccessible.`;
+          console.error(errorMessage);
+          reject(new Error(errorMessage)); // Reject the promise if the iframe is not found
+        }
       }
     });
   }
