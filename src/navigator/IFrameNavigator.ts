@@ -2435,7 +2435,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     });
   }
   nextResource(): any {
+    console.log("nextResource");
     if (this.isPageFlippingRequested) {
+      console.log("isPageFlipping is true");
       return false;
     }
 
@@ -2453,6 +2455,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
     if (!isRightPageSourced) {
       // There is no next page, ignore the request.
+      console.log("right page is sourced");
       return false;
     }
 
