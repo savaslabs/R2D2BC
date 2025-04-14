@@ -3978,7 +3978,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     pageFlipper.appendChild(bottomPage);
 
     document.body.appendChild(pageFlipper);
-    // console.log(`pageFlipper: ` + pageFlipper);
   }
 
   removePageFlipper() {
@@ -3986,10 +3985,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     if (pageFlipper) {
       pageFlipper.remove();
     }
-    // const clonedSpread = document.getElementById("BothPagesDisplayClone");
-    // if (clonedSpread) {
-    //   clonedSpread.remove();
-    // }
   }
 
   cloneCurrentPage(side: "left" | "right"): void {
@@ -4019,20 +4014,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
     // Get the bounding rectangle of the target div relative to the viewport
     const rect = targetDiv.getBoundingClientRect();
-
-    // const parentDiv = wrapper.querySelector("div:last-child");
-    // let clonedDivScale = 1;
-    // if (parentDiv) {
-    //   clonedDivScale = (parentDiv as HTMLElement).style.transform.includes(
-    //     "scale"
-    //   )
-    //     ? parseFloat(
-    //         (parentDiv as HTMLElement).style.transform.match(
-    //           /scale\(([^)]+)\)/
-    //         )?.[1] || "1"
-    //       )
-    //     : 1;
-    // }
 
     // Create a fixed-position clone of the target div
     clonedDiv.style.cssText = ""; // Remove all inline styles
