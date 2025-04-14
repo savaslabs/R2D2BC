@@ -2463,7 +2463,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       isRightPageSourced = true;
     }
 
-    if (!isRightPageSourced) {
+    if (isRightPageSourced) {
+      // There is a next page, proceed with the request.
+      console.log("right page is sourced");
+    } else {
       // There is no next page, ignore the request.
       console.log("right page is not sourced");
       return false;
