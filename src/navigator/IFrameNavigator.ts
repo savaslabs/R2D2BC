@@ -98,7 +98,6 @@ import {
   ConsumptionModuleConfig,
 } from "../modules/consumption/ConsumptionModule";
 import KeyDownEvent = JQuery.KeyDownEvent;
-import { toBlob } from "html-to-image";
 
 export type GetContent = (href: string) => Promise<string>;
 export type GetContentBytesLength = (
@@ -323,31 +322,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   sample?: SampleRead;
   requestConfig?: RequestConfig;
   private didInitKeyboardEventHandler: boolean = false;
-
-  // SAVAS
-  isPageFlippingRequested: boolean = false;
-
-  isFlipLeftCloned: boolean = false;
-  isFlipRightCloned: boolean = false;
-  isUnderLeftCloned: boolean = false;
-  isUnderRightCloned: boolean = false;
-
-  theFlipFrontClone: any;
-  theFlipBackClone: any;
-  theUnderLeftClone: any;
-  theUnderRightClone: any;
-
-  isUnderspreadCloned: boolean = false;
-
-  isTheLeftPageCloned: boolean = false;
-  isTheRightPageCloned: boolean = false;
-
-  cloneOfTheLeftIframe: HTMLIFrameElement | any;
-  cloneOfTheRightIframe: HTMLIFrameElement | any;
-  cloneOfTheLeftPage: HTMLElement | undefined;
-  cloneOfTheRightPage: HTMLElement | undefined;
-  clonedPagesWrapper: HTMLElement | undefined;
-  pageFlipperStyles: any;
 
   public static async create(
     config: IFrameNavigatorConfig
@@ -1609,6 +1583,14 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         await this.timelineModule.initialize();
       }
 
+      if (
+        this.rights.enableMediaOverlays &&
+        this.mediaOverlayModule &&
+        this.hasMediaOverlays
+      ) {
+        await this.mediaOverlayModule.initialize();
+      }
+
       setTimeout(async () => {
         if (this.newElementId) {
           const element = (iframe.contentDocument as any).getElementById(
@@ -2379,141 +2361,17 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   previousPage(): any {
-    //this.handlePreviousPageClick(undefined);
-    this.previousResource();
+    this.handlePreviousPageClick(undefined);
   }
   nextPage(): any {
-    //this.handleNextPageClick(undefined);
-    this.nextResource();
+    this.handleNextPageClick(undefined);
   }
   previousResource(): any {
-    if (this.isPageFlippingRequested) {
-      // Already flipping a page, ignore the request
-      return false;
-    }
-
-    // Figure out if the left and right pages are sourced from a URL or not
-    const leftIframe = document.querySelector(
-      "#LeftPageIframe"
-    ) as HTMLIFrameElement;
-    const isLeftPageSourced =
-      leftIframe?.src.includes("http") || leftIframe?.src.includes("https");
-    const rightIframe = document.querySelector(
-      "#RightPageIframe"
-    ) as HTMLIFrameElement;
-    const isRightPageSourced =
-      rightIframe?.src.includes("http") || rightIframe?.src.includes("https");
-
-    if (!isLeftPageSourced) {
-      // There is no previous page, ignore the request.
-      return false;
-    }
-
-    const rightSource = isRightPageSourced ? "right" : "empty";
-
-    this.clearOutScreenshots();
-    this.pageFlipNotice("show");
-
-    this.makeScreenshotOfIframe("left", "left").then(() => {
-      this.makeScreenshotOfIframe(rightSource, "right").then(() => {
-        this.makeScreenshotOfIframe("left", "front").then(() => {
-          this.createUnderPageFlippers().then(() => {
-            this.handlePreviousChapterClick(undefined);
-            setTimeout(() => {
-              this.makeScreenshotOfIframe("right", "back").then(() => {
-                this.createANewPageFlipper("prev");
-                const underFlipperLeft =
-                  document.querySelector("#UnderFlipperLeft");
-                if (underFlipperLeft) {
-                  underFlipperLeft.remove();
-                }
-              });
-            }, 225);
-          });
-        });
-      });
-    });
+    this.handlePreviousChapterClick(undefined);
   }
   nextResource(): any {
-    console.log("nextResource");
-    if (this.isPageFlippingRequested) {
-      console.log("isPageFlipping is true");
-      return false;
-    }
-
-    // Figure out if the left and right pages are sourced from a URL or not
-    const leftIframe = document.querySelector(
-      "#LeftPageIframe"
-    ) as HTMLIFrameElement;
-    const isLeftPageSourced =
-      leftIframe?.src.includes("http") || leftIframe?.src.includes("https");
-    const rightIframe = document.querySelector(
-      "#RightPageIframe"
-    ) as HTMLIFrameElement;
-    let isRightPageSourced = false;
-    if (
-      rightIframe?.src &&
-      (rightIframe.src.includes("http") || rightIframe.src.includes("https"))
-    ) {
-      isRightPageSourced = true;
-    } else if (
-      !rightIframe?.src &&
-      (rightIframe?.contentDocument?.body?.childElementCount ?? 0) > 0
-    ) {
-      isRightPageSourced = true;
-    }
-
-    if (isRightPageSourced) {
-      // There is a next page, proceed with the request.
-      console.log("right page is sourced");
-    } else {
-      // There is no next page, ignore the request.
-      console.log("right page is not sourced");
-      return false;
-    }
-
-    this.clearOutScreenshots();
-    this.pageFlipNotice("show");
-
-    const leftSource = isLeftPageSourced ? "left" : "empty";
-
-    this.makeScreenshotOfIframe(leftSource, "left").then(() => {
-      this.makeScreenshotOfIframe("right", "right").then(() => {
-        this.makeScreenshotOfIframe("right", "front").then(() => {
-          this.createUnderPageFlippers().then(() => {
-            this.handleNextChapterClick(undefined);
-            setTimeout(() => {
-              this.makeScreenshotOfIframe("left", "back").then(() => {
-                this.createANewPageFlipper("next");
-                const underFlipperRight =
-                  document.querySelector("#UnderFlipperRight");
-                if (underFlipperRight) {
-                  underFlipperRight.remove();
-                }
-              });
-            }, 225);
-          });
-        });
-      });
-    });
+    this.handleNextChapterClick(undefined);
   }
-
-  pageFlipNotice(verb: "hide" | "show") {
-    const pageTurningNotice = document.getElementById("PageTurningNotice");
-    if (verb === "show") {
-      if (pageTurningNotice) {
-        pageTurningNotice.classList.add("visible");
-      }
-      this.isPageFlippingRequested = true;
-    }
-    if (verb === "hide") {
-      if (pageTurningNotice) {
-        pageTurningNotice.classList.remove("visible");
-      }
-      this.isPageFlippingRequested = false;
-    }
-  }
-
   goTo(locator: Locator): any {
     let locations: Locations = locator.locations ?? { progression: 0 };
     if (locator.href.indexOf("#") !== -1) {
@@ -2991,8 +2849,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
-      this.isPageFlippingRequested = true;
-
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
       index = index + 2;
@@ -3007,6 +2863,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         type: next.TypeLink,
         title: next.Title,
       };
+
       this.stopReadAloud();
       this.navigate(position, false);
     } else {
@@ -3394,13 +3251,13 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   private showLoadingMessageAfterDelay() {
     this.isLoading = true;
-    // if (this.isLoading && this.loadingMessage) {
-    //   this.loadingMessage.style.display = "block";
-    //   this.loadingMessage.classList.add("is-loading");
-    // }
-    // if (this.mediaOverlayModule !== undefined) {
-    //   this.mediaOverlayModule.settings.resourceReady = false;
-    // }
+    if (this.isLoading && this.loadingMessage) {
+      this.loadingMessage.style.display = "block";
+      this.loadingMessage.classList.add("is-loading");
+    }
+    if (this.mediaOverlayModule !== undefined) {
+      this.mediaOverlayModule.settings.resourceReady = false;
+    }
   }
 
   private hideIframeContents() {
@@ -3419,7 +3276,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         this.loadingMessage.style.display = "none";
         this.loadingMessage.classList.remove("is-loading");
       }
-      console.log("hide loading message");
       if (this.view?.layout !== "fixed") {
         if (this.view?.atStart() && this.view?.atEnd()) {
           if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
@@ -3434,7 +3290,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       }
       if (this.api?.resourceReady) this.api?.resourceReady();
       this.emit("resource.ready");
-    }, 350);
+    }, 150);
   }
 
   private saveCurrentReadingPosition() {
@@ -3665,297 +3521,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       if (container) {
         container.style.display = "none";
       }
-    }
-  }
-
-  createUnderPageFlippers(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const createUnderFlipper = (side: "left" | "right") => {
-        // Determine properties based on the side
-        let iframeSelector: string, newDivId: string, newDivClass: string;
-        if (side === "left") {
-          iframeSelector = "#LeftPageIframe";
-          newDivId = "UnderFlipperLeft";
-          newDivClass = "under-flipper-left";
-        } else {
-          iframeSelector = "#RightPageIframe";
-          newDivId = "UnderFlipperRight";
-          newDivClass = "under-flipper-right";
-        }
-
-        // Create the flipper container
-        const underFlipper = document.createElement("div");
-        underFlipper.id = newDivId;
-        underFlipper.classList.add("under-flipper", newDivClass);
-
-        // Get the dimensions and position of the iframe
-        const iframe = document.querySelector(
-          iframeSelector
-        ) as HTMLIFrameElement;
-
-        if (iframe) {
-          const rect = iframe.getBoundingClientRect();
-          underFlipper.style.top = `${rect.top}px`;
-          underFlipper.style.left = `${rect.left}px`;
-          underFlipper.style.width = `${rect.width}px`;
-          underFlipper.style.height = `${rect.height}px`;
-        } else {
-          console.error(`${iframeSelector} not found or inaccessible.`);
-          reject(new Error(`${iframeSelector} not found or inaccessible.`));
-          return;
-        }
-
-        if (side === "left") {
-          console.log(this.theUnderLeftClone);
-          if (this.theUnderLeftClone) {
-            underFlipper.append(this.theUnderLeftClone);
-          }
-        }
-        if (side === "right") {
-          console.log(this.theUnderRightClone);
-          if (this.theUnderRightClone) {
-            underFlipper.append(this.theUnderRightClone);
-          }
-        }
-
-        document.body.appendChild(underFlipper);
-      };
-
-      try {
-        createUnderFlipper("left");
-        createUnderFlipper("right");
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
-  createANewPageFlipper(direction: "next" | "prev"): void {
-    const iframeSelector =
-      direction === "next" ? "#RightPageIframe" : "#LeftPageIframe";
-    const targetIframe = document.querySelector(
-      iframeSelector
-    ) as HTMLIFrameElement;
-
-    if (!targetIframe) {
-      console.error(`${iframeSelector} not found or inaccessible.`);
-      return;
-    }
-
-    // Get the dimensions and position of the target iframe
-    const rect = targetIframe.getBoundingClientRect();
-
-    // Create the #NewPageFlipper container
-    const newPageFlipper = document.createElement("div");
-    newPageFlipper.id = "NewPageFlipper";
-    newPageFlipper.className = "new-page-flipper";
-    newPageFlipper.style.top = `${rect.top}px`;
-    newPageFlipper.style.left = `${rect.left}px`;
-    newPageFlipper.style.width = `${rect.width}px`;
-    newPageFlipper.style.height = `${rect.height}px`;
-
-    // Add a class based on the direction
-    if (direction === "next") {
-      newPageFlipper.classList.add("flipping-to-next");
-    } else if (direction === "prev") {
-      newPageFlipper.classList.add("flipping-to-prev");
-    }
-
-    // Create the FLIP FRONT div
-    const flipFront = document.createElement("div");
-    flipFront.id = "NewPageFlipperFront";
-    flipFront.className = "new-page-flipper-front";
-    if (this.theFlipFrontClone) {
-      flipFront.append(this.theFlipFrontClone);
-    }
-
-    // Create the FLIP BACK div
-    const flipBack = document.createElement("div");
-    flipBack.id = "NewPageFlipperBack";
-    flipBack.className = "new-page-flipper-back";
-    if (this.theFlipBackClone) {
-      flipBack.append(this.theFlipBackClone);
-    }
-
-    // Create the inner container for 3D transformation
-    const flipInner = document.createElement("div");
-    flipInner.id = "NewPageFlipperInner";
-    flipInner.className = "new-page-flipper-inner";
-
-    // Append FLIP FRONT and FLIP BACK to the inner container
-    flipInner.appendChild(flipFront);
-    flipInner.appendChild(flipBack);
-
-    // Add the animation to simulate the page turn
-    setTimeout(() => {
-      document.body.classList.add("page-is-flipping");
-
-      if (direction === "next") {
-        flipInner.style.transform = "rotateY(-180deg)";
-        document.body.classList.add("flipping-to-next");
-      }
-      if (direction === "prev") {
-        flipInner.style.transform = "rotateY(180deg)";
-        document.body.classList.add("flipping-to-prev");
-      }
-      setTimeout(() => {
-        this.removeNewPageFlipper();
-        this.clearOutScreenshots();
-        this.pageFlipNotice("hide");
-      }, 1350);
-    }, 100); // Delay to ensure the element is added to the DOM before animating
-
-    // Append the inner container to #NewPageFlipper
-    newPageFlipper.appendChild(flipInner);
-
-    // Append #NewPageFlipper to the body
-    document.body.appendChild(newPageFlipper);
-  }
-
-  removeNewPageFlipper() {
-    const newPageFlipper = document.querySelector("#NewPageFlipper");
-    if (newPageFlipper) {
-      newPageFlipper.remove();
-    }
-    const underFlipperLeft = document.querySelector("#UnderFlipperLeft");
-    if (underFlipperLeft) {
-      underFlipperLeft.remove();
-    }
-    const underFlipperRight = document.querySelector("#UnderFlipperRight");
-    if (underFlipperRight) {
-      underFlipperRight.remove();
-    }
-    document.body.classList.remove(
-      "page-is-flipping",
-      "flipping-to-next",
-      "flipping-to-prev"
-    );
-  }
-
-  clearOutScreenshots() {
-    this.theFlipFrontClone = null;
-    this.theFlipBackClone = null;
-    this.theUnderLeftClone = null;
-    this.theUnderRightClone = null;
-  }
-
-  makeScreenshotOfIframe(
-    side: "left" | "right" | "empty",
-    target: "front" | "back" | "left" | "right"
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (side === "empty") {
-        // Create a solid white PNG
-        const canvas = document.createElement("canvas");
-        canvas.width = 800; // Set desired width
-        canvas.height = 600; // Set desired height
-        const context = canvas.getContext("2d");
-
-        if (context) {
-          context.fillStyle = "white";
-          context.fillRect(0, 0, canvas.width, canvas.height);
-
-          canvas.toBlob((blob) => {
-            if (blob) {
-              const whiteImage = document.createElement("img");
-              const url = URL.createObjectURL(blob);
-              whiteImage.src = url;
-
-              // Save the white image to the appropriate variable based on the target
-              switch (target) {
-                case "front":
-                  this.theFlipFrontClone = whiteImage;
-                  break;
-                case "back":
-                  this.theFlipBackClone = whiteImage;
-                  break;
-                case "left":
-                  this.theUnderLeftClone = whiteImage;
-                  break;
-                case "right":
-                  this.theUnderRightClone = whiteImage;
-                  break;
-                default:
-                  console.error("Invalid target specified.");
-              }
-              resolve(); // Resolve the promise when the white image is successfully created
-            } else {
-              reject(new Error("Failed to create white PNG blob."));
-            }
-          });
-        } else {
-          reject(new Error("Failed to get canvas context."));
-        }
-      } else {
-        const iframeSelector =
-          side === "right" ? "#RightPageIframe" : "#LeftPageIframe";
-        const iframeElement = document.querySelector(
-          iframeSelector
-        ) as HTMLIFrameElement;
-
-        if (iframeElement && iframeElement.contentWindow) {
-          try {
-            const iframeDocument =
-              iframeElement.contentDocument ||
-              iframeElement.contentWindow.document;
-
-            toBlob(iframeDocument.body, { quality: 1, pixelRatio: 2 })
-              .then((blob) => {
-                if (blob) {
-                  const screenshotImage = document.createElement("img");
-                  const url = URL.createObjectURL(blob);
-                  screenshotImage.src = url;
-
-                  // Save the screenshot to the appropriate variable based on the target
-                  switch (target) {
-                    case "front":
-                      this.theFlipFrontClone = screenshotImage;
-                      break;
-                    case "back":
-                      this.theFlipBackClone = screenshotImage;
-                      break;
-                    case "left":
-                      this.theUnderLeftClone = screenshotImage;
-                      break;
-                    case "right":
-                      this.theUnderRightClone = screenshotImage;
-                      break;
-                    default:
-                      console.error("Invalid target specified.");
-                  }
-                  resolve(); // Resolve the promise when the screenshot is successfully captured
-                } else {
-                  reject(new Error("Blob is null or undefined."));
-                }
-              })
-              .catch((error) => {
-                console.error(
-                  `Error capturing screenshot of ${iframeSelector}:`,
-                  error
-                );
-                reject(error); // Reject the promise if an error occurs
-              });
-          } catch (error) {
-            console.error(
-              "Unable to access iframe content. Ensure it is same-origin.",
-              error
-            );
-            reject(error); // Reject the promise if an error occurs
-          }
-        } else {
-          const errorMessage = `${iframeSelector} not found or inaccessible.`;
-          console.error(errorMessage);
-          reject(new Error(errorMessage)); // Reject the promise if the iframe is not found
-        }
-      }
-    });
-  }
-
-  removePageFlipper() {
-    const pageFlipper = document.getElementById("FlippingPage");
-    if (pageFlipper) {
-      pageFlipper.remove();
     }
   }
 }
