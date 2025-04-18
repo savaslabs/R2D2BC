@@ -1411,6 +1411,32 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
+  private createCloneIframe(iframe: HTMLIFrameElement) {
+    // Make the parent a positioning context
+    const parent = iframe.parentElement;
+
+    //Remove any existing sibling clones
+    const existingClones = parent?.querySelectorAll(".clone");
+    existingClones?.forEach((clone) => {
+      clone.remove();
+    });
+
+    // Create and append a clone of the iframe
+    const clonedIframe = iframe.cloneNode(true) as HTMLIFrameElement;
+    clonedIframe.classList.add("clone");
+
+    // Make the parent a positioning context
+    if (parent) {
+      parent.style.position = "relative";
+    }
+
+    // Position the clone directly below the original
+    clonedIframe.style.position = "absolute";
+    clonedIframe.style.inset = "0";
+
+    iframe.parentNode?.insertBefore(clonedIframe, iframe.nextSibling);
+  }
+
   private async handleIFrameLoad(iframe: HTMLIFrameElement): Promise<void> {
     if (this.errorMessage) this.errorMessage.style.display = "none";
     this.showLoadingMessageAfterDelay();
@@ -1638,6 +1664,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           }
         }, 300);
       }, 200);
+
+      this.createCloneIframe(iframe);
 
       return new Promise<void>((resolve) => resolve());
     } catch (err: unknown) {
@@ -3240,20 +3268,24 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private showIframeContents(iframe: HTMLIFrameElement) {
     this.isBeingStyled = false;
     // We set a timeOut so that settings can be applied when opacity is still 0
-    setTimeout(() => {
-      if (!this.isBeingStyled) {
-        iframe.style.opacity = "1";
-        iframe.style.border = "none";
-        iframe.style.overflow = "hidden";
-      }
-    }, 150);
+    // setTimeout(() => {
+    //   if (!this.isBeingStyled) {
+    //     iframe.style.opacity = "1";
+    //     iframe.style.border = "none";
+    //     iframe.style.overflow = "hidden";
+    //   }
+    // }, 150);
+    iframe.style.opacity = "1";
+    iframe.style.border = "none";
+    iframe.style.overflow = "hidden";
   }
 
   private showLoadingMessageAfterDelay() {
     this.isLoading = true;
     if (this.isLoading && this.loadingMessage) {
-      this.loadingMessage.style.display = "block";
-      this.loadingMessage.classList.add("is-loading");
+      // this.loadingMessage.style.display = "block";
+      // this.loadingMessage.classList.add("is-loading");
+      this.loadingMessage.style.display = "none";
     }
     if (this.mediaOverlayModule !== undefined) {
       this.mediaOverlayModule.settings.resourceReady = false;
@@ -3263,34 +3295,35 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private hideIframeContents() {
     this.isBeingStyled = true;
     this.iframes.forEach((iframe) => {
-      iframe.style.opacity = "0";
+      // iframe.style.opacity = "0";
+      iframe.style.opacity = "1";
       iframe.style.border = "none";
       iframe.style.overflow = "hidden";
     });
   }
 
   private hideLoadingMessage() {
-    setTimeout(() => {
-      this.isLoading = false;
-      if (this.loadingMessage) {
-        this.loadingMessage.style.display = "none";
-        this.loadingMessage.classList.remove("is-loading");
+    // setTimeout(() => {
+    this.isLoading = false;
+    if (this.loadingMessage) {
+      this.loadingMessage.style.display = "none";
+      // this.loadingMessage.classList.remove("is-loading");
+    }
+    if (this.view?.layout !== "fixed") {
+      if (this.view?.atStart() && this.view?.atEnd()) {
+        if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
+        this.emit("resource.fits");
+      } else if (this.view?.atEnd()) {
+        if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
+        this.emit("resource.end");
+      } else if (this.view?.atStart()) {
+        if (this.api?.resourceAtStart) this.api?.resourceAtStart();
+        this.emit("resource.start");
       }
-      if (this.view?.layout !== "fixed") {
-        if (this.view?.atStart() && this.view?.atEnd()) {
-          if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
-          this.emit("resource.fits");
-        } else if (this.view?.atEnd()) {
-          if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
-          this.emit("resource.end");
-        } else if (this.view?.atStart()) {
-          if (this.api?.resourceAtStart) this.api?.resourceAtStart();
-          this.emit("resource.start");
-        }
-      }
-      if (this.api?.resourceReady) this.api?.resourceReady();
-      this.emit("resource.ready");
-    }, 150);
+    }
+    if (this.api?.resourceReady) this.api?.resourceReady();
+    this.emit("resource.ready");
+    // }, 150);
   }
 
   private saveCurrentReadingPosition() {
