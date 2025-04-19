@@ -1412,29 +1412,26 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   private createCloneIframe(iframe: HTMLIFrameElement) {
+    if (!iframe.src) {
+      return;
+    }
     // Make the parent a positioning context
     const parent = iframe.parentElement;
-
-    //Remove any existing sibling clones
-    const existingClones = parent?.querySelectorAll(".clone");
-    existingClones?.forEach((clone) => {
-      clone.remove();
-    });
+    if (parent) {
+      parent.style.minWidth = iframe.style.width;
+      parent.style.position = "relative";
+    }
 
     // Create and append a clone of the iframe
     const clonedIframe = iframe.cloneNode(true) as HTMLIFrameElement;
     clonedIframe.classList.add("clone");
-
-    // Make the parent a positioning context
-    if (parent) {
-      parent.style.position = "relative";
-    }
+    clonedIframe.id += "-clone";
 
     // Position the clone directly below the original
     clonedIframe.style.position = "absolute";
-    clonedIframe.style.inset = "0";
-
-    iframe.parentNode?.insertBefore(clonedIframe, iframe.nextSibling);
+    clonedIframe.style.top = "0";
+    clonedIframe.style.left = "0";
+    iframe.parentNode?.insertBefore(clonedIframe, iframe);
   }
 
   private async handleIFrameLoad(iframe: HTMLIFrameElement): Promise<void> {
@@ -2852,6 +2849,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
       this.stopReadAloud();
       this.navigate(position, false);
+
+      this.animatePageTurn("previous");
     } else {
       if (this.previousChapterLink) {
         const position: Locator = {
@@ -2894,6 +2893,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
       this.stopReadAloud();
       this.navigate(position, false);
+
+      this.animatePageTurn("next");
     } else {
       if (this.nextChapterLink) {
         const position: Locator = {
@@ -3555,5 +3556,63 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         container.style.display = "none";
       }
     }
+  }
+
+  animatePageTurn(direction: "previous" | "next") {
+    setTimeout(() => {
+      const container = document.getElementById("D2Reader-Container");
+      container?.classList.add("page-is-flipping");
+      const leftPageDisplay = container?.querySelector("#LeftPageDisplay");
+      const rightPageDisplay = container?.querySelector("#RightPageDisplay");
+      const rightPageOldClone = rightPageDisplay?.querySelector(".clone");
+      const leftPageOldClone = leftPageDisplay?.querySelector(".clone");
+      const nextRightPage = document.getElementById("RightPageIframe");
+      const nextLeftPage = document.getElementById("LeftPageIframe");
+
+      switch (direction) {
+        case "previous":
+          container?.classList.add("flipping-to-prev");
+          if (leftPageOldClone) {
+            (leftPageOldClone as HTMLElement).id = "NewPageFlipper";
+            leftPageOldClone?.classList.add("flipping-to-prev");
+          }
+          if (nextRightPage) {
+            nextRightPage?.classList.add("under-flipper");
+            nextRightPage?.classList.add("under-flipper-right");
+          }
+          break;
+        case "next":
+          container?.classList.add("flipping-to-next");
+          if (rightPageOldClone) {
+            (rightPageOldClone as HTMLElement).id = "NewPageFlipper";
+            rightPageOldClone?.classList.add("flipping-to-next");
+          }
+          if (nextLeftPage) {
+            nextLeftPage?.classList.add("under-flipper");
+            nextLeftPage?.classList.add("under-flipper-left");
+          }
+          break;
+      }
+
+      setTimeout(() => {
+        const classesToRemove = [
+          "page-is-flipping",
+          "flipping-to-prev",
+          "flipping-to-next",
+          "under-flipper",
+          "under-flipper-right",
+          "under-flipper-left",
+        ];
+
+        classesToRemove.forEach((className) => {
+          document.querySelectorAll(`.${className}`).forEach((el) => {
+            el.classList.remove(className);
+          });
+        });
+        // Remove old clones.
+        rightPageOldClone?.remove();
+        leftPageOldClone?.remove();
+      }, 500);
+    }, 100);
   }
 }
