@@ -43,11 +43,6 @@ main#iframe-wrapper {
     }
   }
 }
-:not(.page-is-flipping) {
-  .clone {
-    z-index: -1;
-  }
-}
 
 #NewPageFlipper {
   pointer-events: none;

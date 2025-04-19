@@ -1660,9 +1660,23 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.mediaOverlayModule.settings.resourceReady = true;
           }
         }, 300);
-      }, 200);
 
-      this.createCloneIframe(iframe);
+        // Wait for content to be fully painted using requestAnimationFrame
+        await new Promise<void>((resolve) => {
+          const checkPaint = () => {
+            requestAnimationFrame(() => {
+              if (iframe.contentDocument?.readyState === "complete") {
+                resolve();
+              } else {
+                checkPaint();
+              }
+            });
+          };
+          checkPaint();
+        });
+
+        this.createCloneIframe(iframe);
+      }, 200);
 
       return new Promise<void>((resolve) => resolve());
     } catch (err: unknown) {
