@@ -44,6 +44,10 @@ main#iframe-wrapper {
   }
 }
 
+.clone {
+  pointer-events: none;
+}
+
 #NewPageFlipper {
   pointer-events: none;
   perspective: $flip-perspective;
