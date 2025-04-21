@@ -889,6 +889,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         if (menuBookmark)
           menuBookmark.parentElement?.style.setProperty("display", "none");
       }
+
+      this.skybraryAddClasses(mainElement);
+
       this.setupEvents();
 
       return await this.loadManifest();
@@ -3482,6 +3485,37 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       const container = HTMLUtilities.findElement(doc, ID);
       if (container) {
         container.style.display = "none";
+      }
+    }
+  }
+
+  private skybraryAddClasses(mainElement: HTMLElement) {
+    const lastDiv = HTMLUtilities.findElement(
+      mainElement,
+      "main#iframe-wrapper > div:last-child"
+    );
+    if (lastDiv) {
+      lastDiv.classList.add("both-pages", "both-pages-display");
+      lastDiv.id = "BothPagesDisplay";
+
+      const innerDivs = lastDiv.querySelectorAll("div");
+      if (innerDivs.length >= 2) {
+        innerDivs[0].classList.add("left-page", "left-page-display");
+        innerDivs[0].id = "LeftPageDisplay";
+
+        innerDivs[1].classList.add("right-page", "right-page-display");
+        innerDivs[1].id = "RightPageDisplay";
+      }
+
+      const leftPageIframe = innerDivs[0].querySelector("iframe");
+      if (leftPageIframe) {
+        leftPageIframe.classList.add("left-page-iframe");
+        leftPageIframe.id = "LeftPageIframe";
+      }
+      const rightPageIframe = innerDivs[1].querySelector("iframe");
+      if (rightPageIframe) {
+        rightPageIframe.classList.add("right-page-iframe");
+        rightPageIframe.id = "RightPageIframe";
       }
     }
   }
