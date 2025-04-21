@@ -3561,90 +3561,111 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
-  animatePageTurn(direction: "previous" | "next") {
-    // ── you can adjust these as you like ───────────────────────────────────────
+  private animatePageTurn(direction: "previous" | "next") {
+    // ── Configuration ──────────────────────────────────────────────
     const FLIP_PERSPECTIVE = "1000px";
-    const Z_INDEX_FLIPPER = "10";
-    const Z_INDEX_UNDERFLIPPER = "1";
-    // ────────────────────────────────────────────────────────────────────────────
+    const Z_INDEX_FLIPPER = "1000";
+    const Z_INDEX_UNDERFLIPPER = "999";
+    const FLIP_DURATION_MS = 1000;
+    // ───────────────────────────────────────────────────────────────
 
     const container = document.getElementById("D2Reader-Container");
     if (!container) return;
 
-    const leftPageDisplay = container.querySelector("#LeftPageDisplay");
-    const rightPageDisplay = container.querySelector("#RightPageDisplay");
-    const leftPageOldClone = leftPageDisplay?.querySelector(
-      ".clone"
+    const leftClone = container.querySelector(
+      "#LeftPageDisplay .clone"
     ) as HTMLElement | null;
-    const rightPageOldClone = rightPageDisplay?.querySelector(
-      ".clone"
+    const rightClone = container.querySelector(
+      "#RightPageDisplay .clone"
     ) as HTMLElement | null;
-
-    const nextLeftPage = document.getElementById(
+    const nextLeft = document.getElementById(
       "LeftPageIframe"
     ) as HTMLElement | null;
-    const nextRightPage = document.getElementById(
+    const nextRight = document.getElementById(
       "RightPageIframe"
     ) as HTMLElement | null;
 
     setTimeout(() => {
-      // keep track of everything we've styled so we can clear it later
-      const styledElements: HTMLElement[] = [];
-
-      const styleFlipper = (el: HTMLElement) => {
+      // Flipper styling
+      const styleFlipper = (el: HTMLElement): HTMLElement => {
         el.id = "NewPageFlipper";
         el.style.perspective = FLIP_PERSPECTIVE;
         el.style.zIndex = Z_INDEX_FLIPPER;
         el.style.transformStyle = "preserve-3d";
-        el.style.transition = "transform 1s ease-in";
-        styledElements.push(el);
+        el.style.transition = `transform ${FLIP_DURATION_MS}ms ease-in`;
         return el;
       };
 
-      const styleUnder = (el: HTMLElement, translateX: string) => {
-        el.style.position = "absolute";
-        el.style.zIndex = Z_INDEX_UNDERFLIPPER;
-        el.style.transformStyle = "preserve-3d";
-        el.style.transform = `translateX(${translateX})`;
-        styledElements.push(el);
+      // Under-page setup
+      const styleUnder = (
+        el: HTMLElement,
+        origin: "center left" | "center right",
+        startAngle: string
+      ): void => {
+        Object.assign(el.style, {
+          position: "absolute",
+          zIndex: Z_INDEX_UNDERFLIPPER,
+          transformStyle: "preserve-3d",
+          transformOrigin: origin,
+          overflow: "hidden",
+          transform: `rotateY(${startAngle})`,
+        });
+
+        el.getBoundingClientRect(); // Force layout
+        el.style.transition = `transform ${FLIP_DURATION_MS}ms ease-out`;
+        el.style.transform = "rotateY(0deg)";
       };
 
-      switch (direction) {
-        case "previous":
-          if (leftPageOldClone) {
-            const flipper = styleFlipper(leftPageOldClone);
-            flipper.style.transformOrigin = "center right";
-            flipper.style.transform = "rotateY(-180deg)";
-          }
-          // if (nextRightPage) {
-          //   // "under-flipper under-flipper-right"
-          //   styleUnder(nextRightPage, "-120%");
-          // }
-          break;
+      const resetStyles = (el: HTMLElement): void => {
+        Object.assign(el.style, {
+          position: "",
+          zIndex: "",
+          transformStyle: "",
+          transformOrigin: "",
+          overflow: "",
+          transform: "",
+          transition: "",
+        });
+      };
 
-        case "next":
-          if (rightPageOldClone) {
-            const flipper = styleFlipper(rightPageOldClone);
-            flipper.style.transformOrigin = "center left";
-            flipper.style.transform = "rotateY(180deg)";
-          }
-          // if (nextLeftPage) {
-          //   // "under-flipper under-flipper-left"
-          //   styleUnder(nextLeftPage, "120%");
-          // }
-          break;
+      // ── Apply animations based on direction ───────────────────────
+      const halfFlipDelay = FLIP_DURATION_MS / 2;
+
+      if (direction === "previous") {
+        if (leftClone) {
+          const flipper = styleFlipper(leftClone);
+          flipper.style.transformOrigin = "center right";
+          flipper.style.transform = "rotateY(-180deg)";
+        }
+
+        setTimeout(() => {
+          if (nextRight) styleUnder(nextRight, "center left", "180deg");
+        }, halfFlipDelay);
       }
 
-      // cleanup after half a second
+      if (direction === "next") {
+        if (rightClone) {
+          const flipper = styleFlipper(rightClone);
+          flipper.style.transformOrigin = "center left";
+          flipper.style.transform = "rotateY(180deg)";
+        }
+
+        setTimeout(() => {
+          if (nextLeft) styleUnder(nextLeft, "center right", "-180deg");
+        }, halfFlipDelay);
+      }
+
+      // ── Cleanup ───────────────────────────────────────────────────
       setTimeout(() => {
-        // drop the old clones out of the DOM
-        leftPageOldClone?.remove();
-        rightPageOldClone?.remove();
-      }, 500);
+        if (nextLeft) resetStyles(nextLeft);
+        if (nextRight) resetStyles(nextRight);
+        leftClone?.remove();
+        rightClone?.remove();
+      }, FLIP_DURATION_MS);
     }, 500);
   }
 
-  showClones() {
+  private showClones() {
     document.querySelectorAll(".clone").forEach((element) => {
       (element as HTMLElement).style.opacity = "1";
     });
