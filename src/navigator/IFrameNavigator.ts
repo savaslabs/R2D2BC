@@ -1414,7 +1414,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private createCloneIframe(iframe: HTMLIFrameElement) {
     // Make the parent a positioning context
     const parent = iframe.parentElement;
-    if (parent) {
+    if (parent && !parent.style.minWidth) {
       parent.style.minWidth = iframe.style.width;
       parent.style.position = "relative";
     }
@@ -1425,9 +1425,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     clonedIframe.id += "-clone";
 
     // Position the clone directly below the original
+    clonedIframe.style.opacity = "0";
     clonedIframe.style.position = "absolute";
     clonedIframe.style.top = "0";
     clonedIframe.style.left = "0";
+    clonedIframe.style.pointerEvents = "none";
     clonedIframe.style.minWidth = iframe.style.width;
     iframe.parentNode?.insertBefore(clonedIframe, iframe);
   }
@@ -1658,22 +1660,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.mediaOverlayModule.settings.resourceReady = true;
           }
         }, 300);
-
-        // Wait for content to be fully painted using requestAnimationFrame
-        await new Promise<void>((resolve) => {
-          const checkPaint = () => {
-            requestAnimationFrame(() => {
-              if (iframe.contentDocument?.readyState === "complete") {
-                resolve();
-              } else {
-                checkPaint();
-              }
-            });
-          };
-          checkPaint();
-        });
-
-        this.createCloneIframe(iframe);
       }, 200);
 
       return new Promise<void>((resolve) => resolve());
@@ -2845,6 +2831,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
+      // Skybrary: Show clones
+      this.showClones();
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
       index = index - 2;
@@ -2862,6 +2850,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       this.stopReadAloud();
       this.navigate(position, false);
 
+      // Skybrary: Animate page turn
       this.animatePageTurn("previous");
     } else {
       if (this.previousChapterLink) {
@@ -2888,6 +2877,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     event: MouseEvent | TouchEvent | KeyboardEvent | undefined
   ): void {
     if (this.view?.layout === "fixed" && this.settings.columnCount !== 1) {
+      // Skybrary: Show clones
+      this.showClones();
       let index =
         this.publication.getSpineIndex(this.currentChapterLink.href) ?? 0;
       index = index + 2;
@@ -2906,6 +2897,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       this.stopReadAloud();
       this.navigate(position, false);
 
+      // Skybrary: Animate page turn
       this.animatePageTurn("next");
     } else {
       if (this.nextChapterLink) {
@@ -3281,23 +3273,23 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private showIframeContents(iframe: HTMLIFrameElement) {
     this.isBeingStyled = false;
     // We set a timeOut so that settings can be applied when opacity is still 0
-    // setTimeout(() => {
-    //   if (!this.isBeingStyled) {
-    //     iframe.style.opacity = "1";
-    //     iframe.style.border = "none";
-    //     iframe.style.overflow = "hidden";
-    //   }
-    // }, 150);
-    iframe.style.opacity = "1";
-    iframe.style.border = "none";
-    iframe.style.overflow = "hidden";
+    setTimeout(() => {
+      if (!this.isBeingStyled) {
+        iframe.style.opacity = "1";
+        iframe.style.border = "none";
+        iframe.style.overflow = "hidden";
+
+        // Skybrary: Create clones for page turn animation
+        this.createCloneIframe(iframe);
+      }
+    }, 150);
   }
 
   private showLoadingMessageAfterDelay() {
     this.isLoading = true;
     if (this.isLoading && this.loadingMessage) {
-      // this.loadingMessage.style.display = "block";
-      // this.loadingMessage.classList.add("is-loading");
+      this.loadingMessage.style.display = "block";
+      this.loadingMessage.classList.add("is-loading");
       this.loadingMessage.style.display = "none";
     }
     if (this.mediaOverlayModule !== undefined) {
@@ -3308,35 +3300,34 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private hideIframeContents() {
     this.isBeingStyled = true;
     this.iframes.forEach((iframe) => {
-      // iframe.style.opacity = "0";
-      iframe.style.opacity = "1";
+      iframe.style.opacity = "0";
       iframe.style.border = "none";
       iframe.style.overflow = "hidden";
     });
   }
 
   private hideLoadingMessage() {
-    // setTimeout(() => {
-    this.isLoading = false;
-    if (this.loadingMessage) {
-      this.loadingMessage.style.display = "none";
-      // this.loadingMessage.classList.remove("is-loading");
-    }
-    if (this.view?.layout !== "fixed") {
-      if (this.view?.atStart() && this.view?.atEnd()) {
-        if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
-        this.emit("resource.fits");
-      } else if (this.view?.atEnd()) {
-        if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
-        this.emit("resource.end");
-      } else if (this.view?.atStart()) {
-        if (this.api?.resourceAtStart) this.api?.resourceAtStart();
-        this.emit("resource.start");
+    setTimeout(() => {
+      this.isLoading = false;
+      if (this.loadingMessage) {
+        this.loadingMessage.style.display = "none";
+        this.loadingMessage.classList.remove("is-loading");
       }
-    }
-    if (this.api?.resourceReady) this.api?.resourceReady();
-    this.emit("resource.ready");
-    // }, 150);
+      if (this.view?.layout !== "fixed") {
+        if (this.view?.atStart() && this.view?.atEnd()) {
+          if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
+          this.emit("resource.fits");
+        } else if (this.view?.atEnd()) {
+          if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
+          this.emit("resource.end");
+        } else if (this.view?.atStart()) {
+          if (this.api?.resourceAtStart) this.api?.resourceAtStart();
+          this.emit("resource.start");
+        }
+        if (this.api?.resourceReady) this.api?.resourceReady();
+        this.emit("resource.ready");
+      }
+    }, 150);
   }
 
   private saveCurrentReadingPosition() {
@@ -3577,52 +3568,40 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     const Z_INDEX_UNDERFLIPPER = "1";
     // ────────────────────────────────────────────────────────────────────────────
 
+    const container = document.getElementById("D2Reader-Container");
+    if (!container) return;
+
+    const leftPageDisplay = container.querySelector("#LeftPageDisplay");
+    const rightPageDisplay = container.querySelector("#RightPageDisplay");
+    const leftPageOldClone = leftPageDisplay?.querySelector(
+      ".clone"
+    ) as HTMLElement | null;
+    const rightPageOldClone = rightPageDisplay?.querySelector(
+      ".clone"
+    ) as HTMLElement | null;
+
+    const nextLeftPage = document.getElementById(
+      "LeftPageIframe"
+    ) as HTMLElement | null;
+    const nextRightPage = document.getElementById(
+      "RightPageIframe"
+    ) as HTMLElement | null;
+
     setTimeout(() => {
-      const container = document.getElementById("D2Reader-Container");
-      if (!container) return;
-
-      // “.page-is-flipping”
-      container.style.overflow = "hidden";
-
-      const leftPageDisplay = container.querySelector("#LeftPageDisplay");
-      const rightPageDisplay = container.querySelector("#RightPageDisplay");
-      const leftPageOldClone = leftPageDisplay?.querySelector(
-        ".clone"
-      ) as HTMLElement | null;
-      const rightPageOldClone = rightPageDisplay?.querySelector(
-        ".clone"
-      ) as HTMLElement | null;
-
-      const nextLeftPage = document.getElementById(
-        "LeftPageIframe"
-      ) as HTMLElement | null;
-      const nextRightPage = document.getElementById(
-        "RightPageIframe"
-      ) as HTMLElement | null;
-
-      console.log({
-        leftPageOldClone,
-        rightPageOldClone,
-        nextLeftPage,
-        nextRightPage,
-      });
-
       // keep track of everything we've styled so we can clear it later
       const styledElements: HTMLElement[] = [];
 
       const styleFlipper = (el: HTMLElement) => {
         el.id = "NewPageFlipper";
-        el.style.pointerEvents = "none";
         el.style.perspective = FLIP_PERSPECTIVE;
         el.style.zIndex = Z_INDEX_FLIPPER;
         el.style.transformStyle = "preserve-3d";
-        el.style.transition = "transform 1s ease-in-out";
+        el.style.transition = "transform 1s ease-in";
         styledElements.push(el);
         return el;
       };
 
       const styleUnder = (el: HTMLElement, translateX: string) => {
-        el.style.pointerEvents = "none";
         el.style.position = "absolute";
         el.style.zIndex = Z_INDEX_UNDERFLIPPER;
         el.style.transformStyle = "preserve-3d";
@@ -3662,6 +3641,12 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         leftPageOldClone?.remove();
         rightPageOldClone?.remove();
       }, 500);
-    }, 100);
+    }, 500);
+  }
+
+  showClones() {
+    document.querySelectorAll(".clone").forEach((element) => {
+      (element as HTMLElement).style.opacity = "1";
+    });
   }
 }
