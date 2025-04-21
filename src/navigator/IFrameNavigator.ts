@@ -2851,7 +2851,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       this.navigate(position, false);
 
       // Skybrary: Animate page turn
-      this.animatePageTurn("previous");
+      // this.animatePageTurn("previous");
     } else {
       if (this.previousChapterLink) {
         const position: Locator = {
@@ -2898,7 +2898,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       this.navigate(position, false);
 
       // Skybrary: Animate page turn
-      this.animatePageTurn("next");
+      // this.animatePageTurn("next");
     } else {
       if (this.nextChapterLink) {
         const position: Locator = {
@@ -3280,7 +3280,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         iframe.style.overflow = "hidden";
 
         // Skybrary: Create clones for page turn animation
-        this.createCloneIframe(iframe);
+        // this.createCloneIframe(iframe);
       }
     }, 150);
   }
