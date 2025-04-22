@@ -630,16 +630,18 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.iframes.push(iframe2);
 
             secondSpread.appendChild(this.iframes[1]);
-            this.firstSpread.style.clipPath =
-              "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
-            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
-            secondSpread.style.clipPath =
-              "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
-            secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
+            // Skybrary: style in react-reader
+            // this.firstSpread.style.clipPath =
+            //   "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
+            // this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+            // secondSpread.style.clipPath =
+            //   "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
+            // secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
           } else {
-            this.firstSpread.style.clipPath =
-              "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
-            this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+            // Skybrary: style in react-reader
+            // this.firstSpread.style.clipPath =
+            //   "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
+            // this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
           }
         } else {
           this.iframes[0].style.paddingTop =
@@ -2563,12 +2565,13 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         this.spreads.appendChild(secondSpread);
         secondSpread.appendChild(this.iframes[1]);
 
-        this.firstSpread.style.clipPath =
-          "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
-        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
-        secondSpread.style.clipPath =
-          "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
-        secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
+        // Skybrary: style in react-reader
+        // this.firstSpread.style.clipPath =
+        //   "polygon(0% -20%, 100% -20%, 100% 120%, -20% 120%)";
+        // this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+        // secondSpread.style.clipPath =
+        //   "polygon(0% -20%, 100% -20%, 120% 100%, 0% 120%)";
+        // secondSpread.style.boxShadow = "0 0 8px 2px #ccc";
       } else {
         if (this.iframes.length === 2) {
           this.iframes.pop();
@@ -2576,9 +2579,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
             this.spreads.removeChild(this.spreads.lastChild);
           }
         }
-        this.firstSpread.style.clipPath =
-          "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
-        this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
+
+        // Skybrary: style in react-reader
+        // this.firstSpread.style.clipPath =
+        //   "polygon(0% -20%, 100% -20%, 120% 100%, -20% 120%)";
+        // this.firstSpread.style.boxShadow = "0 0 8px 2px #ccc";
       }
       this.precessContentForIframe();
     }
