@@ -560,7 +560,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         mainElement,
         "main#iframe-wrapper"
       );
-      wrapper.style.overflow = "auto";
+      // wrapper.style.overflow = "auto";
+      // Skybrary: style in react-reader
+      // wrapper.style.overflow = "auto";
       let iframe = HTMLUtilities.findElement(
         mainElement,
         "main#iframe-wrapper iframe"
@@ -577,7 +579,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         this.settings.columnCount = 1;
       }
       if (this.iframes.length === 0) {
-        wrapper.style.overflow = "auto";
+        // Skybrary: style in react-reader
+        // wrapper.style.overflow = "auto";
         let iframe = document.createElement("iframe");
         iframe.setAttribute("SCROLLING", "no");
         iframe.setAttribute("allowtransparency", "true");
