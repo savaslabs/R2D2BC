@@ -2141,68 +2141,97 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       }
     }
     if (this.publication.isFixedLayout) {
-      setTimeout(() => {
-        let height, width;
-        let doc;
-        if (index === 0 && this.iframes?.length === 2) {
-          doc = this.iframes[1].contentDocument;
-        } else {
-          doc = this.iframes[0].contentDocument;
+      let height, width;
+      let doc;
+      if (index === 0 && this.iframes?.length === 2) {
+        doc = this.iframes[1].contentDocument;
+      } else {
+        doc = this.iframes[0].contentDocument;
+      }
+      if (doc && doc.body) {
+        height = getComputedStyle(doc.body).height;
+        width = getComputedStyle(doc.body).width;
+        if (
+          parseInt(height.toString().replace("px", "")) === 0 ||
+          parseInt(width.toString().replace("px", "")) === 0
+        ) {
+          const head = HTMLUtilities.findIframeElement(
+            doc,
+            "head"
+          ) as HTMLHeadElement;
+          if (head) {
+            const viewport = HTMLUtilities.findElement(
+              head,
+              "meta[name=viewport]"
+            );
+            if (viewport) {
+              var dimensionsStr = viewport.content;
+              var obj = dimensionsStr.split(",").reduce((obj, s) => {
+                var [key, value] = s.match(/[^\s;=]+/g);
+                obj[key] = isNaN(Number(value)) ? value : +value;
+                return obj;
+              }, {});
+              height = obj["height"] + "px";
+              width = obj["width"] + "px";
+            }
+          }
         }
-        if (doc && doc.body) {
-          height = getComputedStyle(doc.body).height;
-          width = getComputedStyle(doc.body).width;
+      }
+
+      var iframeParent =
+        index === 0 && this.iframes.length === 2
+          ? this.iframes[1].parentElement?.parentElement
+          : (this.iframes[0].parentElement?.parentElement as HTMLElement);
+      if (iframeParent && width) {
+        var widthRatio =
+          (parseInt(getComputedStyle(iframeParent).width) - 100) /
+          (this.iframes.length === 2
+            ? parseInt(width.toString().replace("px", "")) * 2 + 200
+            : parseInt(width.toString().replace("px", "")));
+        var heightRatio =
+          (parseInt(getComputedStyle(iframeParent).height) - 100) /
+          parseInt(height.toString().replace("px", ""));
+        var scale = Math.min(widthRatio, heightRatio);
+        iframeParent.style.transform = "scale(" + scale + ")";
+        for (const iframe of this.iframes) {
+          iframe.style.height = height;
+          iframe.style.width = width;
+          if (iframe.parentElement) {
+            iframe.parentElement.style.height = height;
+          }
+        }
+      }
+
+      // Add MutationObserver to watch for iframe width changes
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
           if (
-            parseInt(height.toString().replace("px", "")) === 0 ||
-            parseInt(width.toString().replace("px", "")) === 0
+            mutation.type === "attributes" &&
+            mutation.attributeName === "style"
           ) {
-            const head = HTMLUtilities.findIframeElement(
-              doc,
-              "head"
-            ) as HTMLHeadElement;
-            if (head) {
-              const viewport = HTMLUtilities.findElement(
-                head,
-                "meta[name=viewport]"
-              );
-              if (viewport) {
-                var dimensionsStr = viewport.content;
-                var obj = dimensionsStr.split(",").reduce((obj, s) => {
-                  var [key, value] = s.match(/[^\s;=]+/g);
-                  obj[key] = isNaN(Number(value)) ? value : +value;
-                  return obj;
-                }, {});
-                height = obj["height"] + "px";
-                width = obj["width"] + "px";
+            const iframe = mutation.target as HTMLIFrameElement;
+            const width = iframe.style.width;
+            const minWidth = iframe.style.minWidth;
+
+            if (iframe.parentElement) {
+              if (width) {
+                iframe.parentElement.style.width = width;
+              }
+              if (minWidth) {
+                iframe.parentElement.style.minWidth = minWidth;
               }
             }
           }
-        }
+        });
+      });
 
-        var iframeParent =
-          index === 0 && this.iframes.length === 2
-            ? this.iframes[1].parentElement?.parentElement
-            : (this.iframes[0].parentElement?.parentElement as HTMLElement);
-        if (iframeParent && width) {
-          var widthRatio =
-            (parseInt(getComputedStyle(iframeParent).width) - 100) /
-            (this.iframes.length === 2
-              ? parseInt(width.toString().replace("px", "")) * 2 + 200
-              : parseInt(width.toString().replace("px", "")));
-          var heightRatio =
-            (parseInt(getComputedStyle(iframeParent).height) - 100) /
-            parseInt(height.toString().replace("px", ""));
-          var scale = Math.min(widthRatio, heightRatio);
-          iframeParent.style.transform = "scale(" + scale + ")";
-          for (const iframe of this.iframes) {
-            iframe.style.height = height;
-            iframe.style.width = width;
-            if (iframe.parentElement) {
-              iframe.parentElement.style.height = height;
-            }
-          }
-        }
-      }, 400);
+      // Observe all iframes for style changes
+      this.iframes.forEach((iframe) => {
+        observer.observe(iframe, {
+          attributes: true,
+          attributeFilter: ["style"],
+        });
+      });
     }
   }
 
