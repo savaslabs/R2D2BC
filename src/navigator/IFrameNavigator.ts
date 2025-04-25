@@ -1561,53 +1561,72 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         await this.mediaOverlayModule.initialize();
       }
 
-      setTimeout(async () => {
-        if (this.newElementId) {
-          const element = (iframe.contentDocument as any).getElementById(
-            this.newElementId
-          );
-          this.view?.goToElement?.(element);
-          this.newElementId = undefined;
-        } else if (
-          this.newPosition &&
-          (this.newPosition as Annotation).highlight
-        ) {
-          let startContainer = (this.newPosition as Annotation).highlight
-            ?.selectionInfo.rangeInfo.startContainerElementCssSelector;
-          if (startContainer) {
-            this.view?.goToCssSelector(startContainer);
+      // Wait for all iframes to be fully loaded
+      const iframeLoadPromises = this.iframes.map((iframe) => {
+        return new Promise<void>((resolve) => {
+          if (iframe.contentDocument?.readyState === "complete") {
+            resolve();
+          } else {
+            iframe.addEventListener("load", () => resolve(), { once: true });
           }
-        } else if (bookViewPosition && bookViewPosition >= 0) {
-          this.view?.goToProgression(bookViewPosition);
+        });
+      });
+
+      await Promise.all(iframeLoadPromises);
+
+      // Now that all iframes are loaded, handle positioning and content
+      if (this.newElementId) {
+        const element = (iframe.contentDocument as any).getElementById(
+          this.newElementId
+        );
+        this.view?.goToElement?.(element);
+        this.newElementId = undefined;
+      } else if (
+        this.newPosition &&
+        (this.newPosition as Annotation).highlight
+      ) {
+        let startContainer = (this.newPosition as Annotation).highlight
+          ?.selectionInfo.rangeInfo.startContainerElementCssSelector;
+        if (startContainer) {
+          this.view?.goToCssSelector(startContainer);
         }
+      } else if (bookViewPosition && bookViewPosition >= 0) {
+        this.view?.goToProgression(bookViewPosition);
+      }
 
-        this.newPosition = undefined;
+      this.newPosition = undefined;
 
-        if (this.rights?.enableContentProtection) {
-          if (this.contentProtectionModule !== undefined) {
-            await this.contentProtectionModule.recalculate(10);
-          }
+      if (this.rights?.enableContentProtection) {
+        if (this.contentProtectionModule !== undefined) {
+          await this.contentProtectionModule.recalculate(10);
         }
+      }
 
-        this.hideLoadingMessage();
-        this.showIframeContents(iframe);
+      this.hideLoadingMessage();
+      this.showIframeContents(iframe);
 
-        if (
-          this.rights.enableMediaOverlays &&
-          this.mediaOverlayModule &&
-          this.hasMediaOverlays
-        ) {
-          let link = this.currentLink();
-          await this.mediaOverlayModule?.initializeResource(link);
+      if (
+        this.rights.enableMediaOverlays &&
+        this.mediaOverlayModule &&
+        this.hasMediaOverlays
+      ) {
+        let link = this.currentLink();
+        await this.mediaOverlayModule?.initializeResource(link);
+      }
+      await this.updatePositionInfo();
+      await this.view?.setSize();
+
+      if (this.mediaOverlayModule) {
+        this.mediaOverlayModule.settings.resourceReady = true;
+      }
+
+      // Add loaded class to both iframe and parent after everything is complete
+      this.iframes.forEach((iframe) => {
+        iframe.classList.add("loaded");
+        if (iframe.parentElement) {
+          iframe.parentElement.classList.add("loaded");
         }
-        await this.updatePositionInfo();
-        await this.view?.setSize();
-        setTimeout(() => {
-          if (this.mediaOverlayModule) {
-            this.mediaOverlayModule.settings.resourceReady = true;
-          }
-        }, 300);
-      }, 200);
+      });
 
       return new Promise<void>((resolve) => resolve());
     } catch (err: unknown) {
@@ -3212,14 +3231,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   private showIframeContents(iframe: HTMLIFrameElement) {
     this.isBeingStyled = false;
-    // We set a timeOut so that settings can be applied when opacity is still 0
-    setTimeout(() => {
-      if (!this.isBeingStyled) {
-        iframe.style.opacity = "1";
-        iframe.style.border = "none";
-        iframe.style.overflow = "hidden";
-      }
-    }, 150);
+    iframe.style.opacity = "1";
+    iframe.style.border = "none";
+    iframe.style.overflow = "hidden";
   }
 
   private showLoadingMessageAfterDelay() {
@@ -3236,6 +3250,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private hideIframeContents() {
     this.isBeingStyled = true;
     this.iframes.forEach((iframe) => {
+      iframe.classList.remove("loaded");
+      if (iframe.parentElement) {
+        iframe.parentElement.classList.remove("loaded");
+      }
       iframe.style.opacity = "0";
       iframe.style.border = "none";
       iframe.style.overflow = "hidden";
@@ -3243,27 +3261,25 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   private hideLoadingMessage() {
-    setTimeout(() => {
-      this.isLoading = false;
-      if (this.loadingMessage) {
-        this.loadingMessage.style.display = "none";
-        this.loadingMessage.classList.remove("is-loading");
+    this.isLoading = false;
+    if (this.loadingMessage) {
+      this.loadingMessage.style.display = "none";
+      this.loadingMessage.classList.remove("is-loading");
+    }
+    if (this.view?.layout !== "fixed") {
+      if (this.view?.atStart() && this.view?.atEnd()) {
+        if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
+        this.emit("resource.fits");
+      } else if (this.view?.atEnd()) {
+        if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
+        this.emit("resource.end");
+      } else if (this.view?.atStart()) {
+        if (this.api?.resourceAtStart) this.api?.resourceAtStart();
+        this.emit("resource.start");
       }
-      if (this.view?.layout !== "fixed") {
-        if (this.view?.atStart() && this.view?.atEnd()) {
-          if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
-          this.emit("resource.fits");
-        } else if (this.view?.atEnd()) {
-          if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
-          this.emit("resource.end");
-        } else if (this.view?.atStart()) {
-          if (this.api?.resourceAtStart) this.api?.resourceAtStart();
-          this.emit("resource.start");
-        }
-      }
-      if (this.api?.resourceReady) this.api?.resourceReady();
-      this.emit("resource.ready");
-    }, 150);
+    }
+    if (this.api?.resourceReady) this.api?.resourceReady();
+    this.emit("resource.ready");
   }
 
   private saveCurrentReadingPosition() {
