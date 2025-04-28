@@ -1561,53 +1561,72 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         await this.mediaOverlayModule.initialize();
       }
 
-      setTimeout(async () => {
-        if (this.newElementId) {
-          const element = (iframe.contentDocument as any).getElementById(
-            this.newElementId
-          );
-          this.view?.goToElement?.(element);
-          this.newElementId = undefined;
-        } else if (
-          this.newPosition &&
-          (this.newPosition as Annotation).highlight
-        ) {
-          let startContainer = (this.newPosition as Annotation).highlight
-            ?.selectionInfo.rangeInfo.startContainerElementCssSelector;
-          if (startContainer) {
-            this.view?.goToCssSelector(startContainer);
+      // Wait for all iframes to be fully loaded
+      const iframeLoadPromises = this.iframes.map((iframe) => {
+        return new Promise<void>((resolve) => {
+          if (iframe.contentDocument?.readyState === "complete") {
+            resolve();
+          } else {
+            iframe.addEventListener("load", () => resolve(), { once: true });
           }
-        } else if (bookViewPosition && bookViewPosition >= 0) {
-          this.view?.goToProgression(bookViewPosition);
+        });
+      });
+
+      await Promise.all(iframeLoadPromises);
+
+      // Now that all iframes are loaded, handle positioning and content
+      if (this.newElementId) {
+        const element = (iframe.contentDocument as any).getElementById(
+          this.newElementId
+        );
+        this.view?.goToElement?.(element);
+        this.newElementId = undefined;
+      } else if (
+        this.newPosition &&
+        (this.newPosition as Annotation).highlight
+      ) {
+        let startContainer = (this.newPosition as Annotation).highlight
+          ?.selectionInfo.rangeInfo.startContainerElementCssSelector;
+        if (startContainer) {
+          this.view?.goToCssSelector(startContainer);
         }
+      } else if (bookViewPosition && bookViewPosition >= 0) {
+        this.view?.goToProgression(bookViewPosition);
+      }
 
-        this.newPosition = undefined;
+      this.newPosition = undefined;
 
-        if (this.rights?.enableContentProtection) {
-          if (this.contentProtectionModule !== undefined) {
-            await this.contentProtectionModule.recalculate(10);
-          }
+      if (this.rights?.enableContentProtection) {
+        if (this.contentProtectionModule !== undefined) {
+          await this.contentProtectionModule.recalculate(10);
         }
+      }
 
-        this.hideLoadingMessage();
-        this.showIframeContents(iframe);
+      this.hideLoadingMessage();
+      this.showIframeContents(iframe);
 
-        if (
-          this.rights.enableMediaOverlays &&
-          this.mediaOverlayModule &&
-          this.hasMediaOverlays
-        ) {
-          let link = this.currentLink();
-          await this.mediaOverlayModule?.initializeResource(link);
+      if (
+        this.rights.enableMediaOverlays &&
+        this.mediaOverlayModule &&
+        this.hasMediaOverlays
+      ) {
+        let link = this.currentLink();
+        await this.mediaOverlayModule?.initializeResource(link);
+      }
+      await this.updatePositionInfo();
+      await this.view?.setSize();
+
+      if (this.mediaOverlayModule) {
+        this.mediaOverlayModule.settings.resourceReady = true;
+      }
+
+      // Add loaded class to both iframe and parent after everything is complete
+      this.iframes.forEach((iframe) => {
+        iframe.classList.add("loaded");
+        if (iframe.parentElement) {
+          iframe.parentElement.classList.add("loaded");
         }
-        await this.updatePositionInfo();
-        await this.view?.setSize();
-        setTimeout(() => {
-          if (this.mediaOverlayModule) {
-            this.mediaOverlayModule.settings.resourceReady = true;
-          }
-        }, 300);
-      }, 200);
+      });
 
       return new Promise<void>((resolve) => resolve());
     } catch (err: unknown) {
@@ -2122,68 +2141,97 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       }
     }
     if (this.publication.isFixedLayout) {
-      setTimeout(() => {
-        let height, width;
-        let doc;
-        if (index === 0 && this.iframes?.length === 2) {
-          doc = this.iframes[1].contentDocument;
-        } else {
-          doc = this.iframes[0].contentDocument;
+      let height, width;
+      let doc;
+      if (index === 0 && this.iframes?.length === 2) {
+        doc = this.iframes[1].contentDocument;
+      } else {
+        doc = this.iframes[0].contentDocument;
+      }
+      if (doc && doc.body) {
+        height = getComputedStyle(doc.body).height;
+        width = getComputedStyle(doc.body).width;
+        if (
+          parseInt(height.toString().replace("px", "")) === 0 ||
+          parseInt(width.toString().replace("px", "")) === 0
+        ) {
+          const head = HTMLUtilities.findIframeElement(
+            doc,
+            "head"
+          ) as HTMLHeadElement;
+          if (head) {
+            const viewport = HTMLUtilities.findElement(
+              head,
+              "meta[name=viewport]"
+            );
+            if (viewport) {
+              var dimensionsStr = viewport.content;
+              var obj = dimensionsStr.split(",").reduce((obj, s) => {
+                var [key, value] = s.match(/[^\s;=]+/g);
+                obj[key] = isNaN(Number(value)) ? value : +value;
+                return obj;
+              }, {});
+              height = obj["height"] + "px";
+              width = obj["width"] + "px";
+            }
+          }
         }
-        if (doc && doc.body) {
-          height = getComputedStyle(doc.body).height;
-          width = getComputedStyle(doc.body).width;
+      }
+
+      var iframeParent =
+        index === 0 && this.iframes.length === 2
+          ? this.iframes[1].parentElement?.parentElement
+          : (this.iframes[0].parentElement?.parentElement as HTMLElement);
+      if (iframeParent && width) {
+        var widthRatio =
+          (parseInt(getComputedStyle(iframeParent).width) - 100) /
+          (this.iframes.length === 2
+            ? parseInt(width.toString().replace("px", "")) * 2 + 200
+            : parseInt(width.toString().replace("px", "")));
+        var heightRatio =
+          (parseInt(getComputedStyle(iframeParent).height) - 100) /
+          parseInt(height.toString().replace("px", ""));
+        var scale = Math.min(widthRatio, heightRatio);
+        iframeParent.style.transform = "scale(" + scale + ")";
+        for (const iframe of this.iframes) {
+          iframe.style.height = height;
+          iframe.style.width = width;
+          if (iframe.parentElement) {
+            iframe.parentElement.style.height = height;
+          }
+        }
+      }
+
+      // Add MutationObserver to watch for iframe width changes
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
           if (
-            parseInt(height.toString().replace("px", "")) === 0 ||
-            parseInt(width.toString().replace("px", "")) === 0
+            mutation.type === "attributes" &&
+            mutation.attributeName === "style"
           ) {
-            const head = HTMLUtilities.findIframeElement(
-              doc,
-              "head"
-            ) as HTMLHeadElement;
-            if (head) {
-              const viewport = HTMLUtilities.findElement(
-                head,
-                "meta[name=viewport]"
-              );
-              if (viewport) {
-                var dimensionsStr = viewport.content;
-                var obj = dimensionsStr.split(",").reduce((obj, s) => {
-                  var [key, value] = s.match(/[^\s;=]+/g);
-                  obj[key] = isNaN(Number(value)) ? value : +value;
-                  return obj;
-                }, {});
-                height = obj["height"] + "px";
-                width = obj["width"] + "px";
+            const iframe = mutation.target as HTMLIFrameElement;
+            const width = iframe.style.width;
+            const minWidth = iframe.style.minWidth;
+
+            if (iframe.parentElement) {
+              if (width) {
+                iframe.parentElement.style.width = width;
+              }
+              if (minWidth) {
+                iframe.parentElement.style.minWidth = minWidth;
               }
             }
           }
-        }
+        });
+      });
 
-        var iframeParent =
-          index === 0 && this.iframes.length === 2
-            ? this.iframes[1].parentElement?.parentElement
-            : (this.iframes[0].parentElement?.parentElement as HTMLElement);
-        if (iframeParent && width) {
-          var widthRatio =
-            (parseInt(getComputedStyle(iframeParent).width) - 100) /
-            (this.iframes.length === 2
-              ? parseInt(width.toString().replace("px", "")) * 2 + 200
-              : parseInt(width.toString().replace("px", "")));
-          var heightRatio =
-            (parseInt(getComputedStyle(iframeParent).height) - 100) /
-            parseInt(height.toString().replace("px", ""));
-          var scale = Math.min(widthRatio, heightRatio);
-          iframeParent.style.transform = "scale(" + scale + ")";
-          for (const iframe of this.iframes) {
-            iframe.style.height = height;
-            iframe.style.width = width;
-            if (iframe.parentElement) {
-              iframe.parentElement.style.height = height;
-            }
-          }
-        }
-      }, 400);
+      // Observe all iframes for style changes
+      this.iframes.forEach((iframe) => {
+        observer.observe(iframe, {
+          attributes: true,
+          attributeFilter: ["style"],
+        });
+      });
     }
   }
 
@@ -3212,14 +3260,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
   private showIframeContents(iframe: HTMLIFrameElement) {
     this.isBeingStyled = false;
-    // We set a timeOut so that settings can be applied when opacity is still 0
-    setTimeout(() => {
-      if (!this.isBeingStyled) {
-        iframe.style.opacity = "1";
-        iframe.style.border = "none";
-        iframe.style.overflow = "hidden";
-      }
-    }, 150);
+    iframe.style.opacity = "1";
+    iframe.style.border = "none";
+    iframe.style.overflow = "hidden";
   }
 
   private showLoadingMessageAfterDelay() {
@@ -3236,6 +3279,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   private hideIframeContents() {
     this.isBeingStyled = true;
     this.iframes.forEach((iframe) => {
+      iframe.classList.remove("loaded");
+      if (iframe.parentElement) {
+        iframe.parentElement.classList.remove("loaded");
+      }
       iframe.style.opacity = "0";
       iframe.style.border = "none";
       iframe.style.overflow = "hidden";
@@ -3243,27 +3290,25 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   }
 
   private hideLoadingMessage() {
-    setTimeout(() => {
-      this.isLoading = false;
-      if (this.loadingMessage) {
-        this.loadingMessage.style.display = "none";
-        this.loadingMessage.classList.remove("is-loading");
+    this.isLoading = false;
+    if (this.loadingMessage) {
+      this.loadingMessage.style.display = "none";
+      this.loadingMessage.classList.remove("is-loading");
+    }
+    if (this.view?.layout !== "fixed") {
+      if (this.view?.atStart() && this.view?.atEnd()) {
+        if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
+        this.emit("resource.fits");
+      } else if (this.view?.atEnd()) {
+        if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
+        this.emit("resource.end");
+      } else if (this.view?.atStart()) {
+        if (this.api?.resourceAtStart) this.api?.resourceAtStart();
+        this.emit("resource.start");
       }
-      if (this.view?.layout !== "fixed") {
-        if (this.view?.atStart() && this.view?.atEnd()) {
-          if (this.api?.resourceFitsScreen) this.api?.resourceFitsScreen();
-          this.emit("resource.fits");
-        } else if (this.view?.atEnd()) {
-          if (this.api?.resourceAtEnd) this.api?.resourceAtEnd();
-          this.emit("resource.end");
-        } else if (this.view?.atStart()) {
-          if (this.api?.resourceAtStart) this.api?.resourceAtStart();
-          this.emit("resource.start");
-        }
-      }
-      if (this.api?.resourceReady) this.api?.resourceReady();
-      this.emit("resource.ready");
-    }, 150);
+    }
+    if (this.api?.resourceReady) this.api?.resourceReady();
+    this.emit("resource.ready");
   }
 
   private saveCurrentReadingPosition() {
