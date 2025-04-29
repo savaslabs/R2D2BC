@@ -43,10 +43,29 @@ export class Publication extends R2Publication {
     url: URL,
     requestConfig?: RequestConfig
   ): Promise<Publication> {
-    const response = await fetch(url.href, requestConfig);
+    // Extract query parameters from manifest URL
+    const manifestParams = new URLSearchParams(url.search);
+
+    // Create a new requestConfig that includes the manifest query parameters
+    const updatedRequestConfig: RequestConfig = {
+      ...requestConfig,
+      headers: {
+        ...requestConfig?.headers,
+      },
+    };
+
+    // Add query parameters to the URL if they don't already exist
+    const manifestUrl = new URL(url.href);
+    manifestParams.forEach((value, key) => {
+      if (!manifestUrl.searchParams.has(key)) {
+        manifestUrl.searchParams.append(key, value);
+      }
+    });
+
+    const response = await fetch(manifestUrl.href, updatedRequestConfig);
     const manifestJSON = await response.json();
     let publication = TaJsonDeserialize<Publication>(manifestJSON, Publication);
-    publication.manifestUrl = url;
+    publication.manifestUrl = manifestUrl;
     return publication;
   }
 
@@ -165,7 +184,18 @@ export class Publication extends R2Publication {
   }
 
   public getAbsoluteHref(href: string): string {
-    return new URL(href, this.manifestUrl.href).href;
+    // Create a new URL with the base manifest URL
+    const absoluteUrl = new URL(href, this.manifestUrl.href);
+
+    // Copy query parameters from manifest URL to the resource URL
+    const manifestParams = new URLSearchParams(this.manifestUrl.search);
+    manifestParams.forEach((value, key) => {
+      if (!absoluteUrl.searchParams.has(key)) {
+        absoluteUrl.searchParams.append(key, value);
+      }
+    });
+
+    return absoluteUrl.href;
   }
 
   public getRelativeHref(href: string): string {
