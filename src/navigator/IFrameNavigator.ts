@@ -98,6 +98,7 @@ import {
   ConsumptionModuleConfig,
 } from "../modules/consumption/ConsumptionModule";
 import KeyDownEvent = JQuery.KeyDownEvent;
+import { createResourceInterceptorScript } from "../utils/ResourceInterceptor";
 
 export type GetContent = (href: string) => Promise<string>;
 export type GetContentBytesLength = (
@@ -1671,6 +1672,12 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           head.firstChild
         );
       }
+
+      // Inject fetch override script
+      const manifestUrl = this.publication.manifestUrl || "";
+      const resourceInterceptorScript =
+        createResourceInterceptorScript(manifestUrl);
+      head.appendChild(resourceInterceptorScript);
 
       this.injectables?.forEach((injectable) => {
         if (injectable.type === "style") {

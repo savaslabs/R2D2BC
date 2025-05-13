@@ -505,11 +505,14 @@ export class MediaOverlayModule implements ReaderModule {
       moTextAudioPair.Audio,
       this.publication.manifestUrl
     );
+    const manifestUrl = new URL(this.publication.manifestUrl);
+    manifestUrl.searchParams.forEach((value, key) => {
+      urlObjFull.searchParams.set(key, value);
+    });
     const urlFull = urlObjFull.toString();
 
     const urlObjNoQuery = new URL(urlFull);
     urlObjNoQuery.hash = "";
-    urlObjNoQuery.search = "";
     const urlNoQuery = urlObjNoQuery.toString();
 
     const hasBegin = typeof begin !== "undefined";
