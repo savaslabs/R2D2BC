@@ -1,125 +1,121 @@
 /**
- * Utility for adding query parameters to resource URLs in iframes
+ * ResourceInterceptor
+ *
+ * A utility module that handles the interception and modification of resource URLs
+ * in HTML documents. It adds query parameters from a manifest URL to all resource
+ * URLs found in the document, including:
+ * - Elements with src, href, and data attributes
+ * - Images with srcset attributes
+ * - Inline styles with background-image URLs
+ * - URLs in style elements
+ *
+ * This module is used to ensure all resources loaded by an iframe maintain the
+ * query parameters from the original manifest URL.
  */
 
 /**
- * Creates a script element that adds query parameters to resource URLs
+ * Adds query parameters from a manifest URL to all resource URLs in a document.
+ *
+ * This function processes the document and modifies all resource URLs to include
+ * the query parameters from the manifest URL. It handles various types of URLs:
+ * - Absolute URLs
+ * - Relative URLs
+ * - URLs in srcset attributes
+ * - URLs in inline styles
+ * - URLs in style elements
+ *
+ * Special URL schemes (data:, blob:, #, javascript:) are preserved without modification.
+ *
+ * @param doc - The HTML document to process. Must be a valid Document object.
+ * @param manifestUrl - The manifest URL containing query parameters to add. Must be a valid URL object.
+ * @returns void
  */
-export function createResourceInterceptorScript(
-  manifestUrl: string | URL
-): HTMLScriptElement {
-  const scriptElement = document.createElement("script");
-  scriptElement.type = "text/javascript";
-  scriptElement.textContent = generateResourceInterceptorCode(manifestUrl);
-  return scriptElement;
-}
+export const addQueryParamsToResources = (doc: Document, manifestUrl: URL) => {
+  // Validate input parameters
+  if (!doc || !manifestUrl) {
+    return;
+  }
 
-/**
- * Generates code to add query parameters to resource URLs
- */
-export function generateResourceInterceptorCode(
-  manifestUrl: string | URL
-): string {
-  // Extract query string from the manifest URL
+  // Extract query parameters from manifest URL if available
   let queryString = "";
-  try {
-    if (manifestUrl) {
-      const url =
-        typeof manifestUrl === "string" ? new URL(manifestUrl) : manifestUrl;
+  if (manifestUrl) {
+    try {
+      const url = new URL(manifestUrl);
       queryString = url.search.startsWith("?")
         ? url.search.substring(1)
         : url.search;
+    } catch (e) {
+      console.error("Error parsing manifestUrl:", e);
     }
-  } catch (e) {
-    console.error("Error parsing manifestUrl:", e);
   }
 
-  return `
-    // Only process if we have query parameters
-    const queryParams = ${JSON.stringify(queryString)};
-    if (!queryParams) {
-      // Using void(0) instead of return which is illegal at global scope
-      void(0);
-    } else {
-      // Add parameters to a URL
-      function addParams(url) {
-        if (!url || typeof url !== 'string' || url.startsWith('data:') || 
-            url.startsWith('blob:') || url.startsWith('#') || 
-            url.startsWith('javascript:')) return url;
-        
-        const separator = url.includes('?') ? '&' : '?';
-        return url + separator + queryParams;
+  // Add query parameters to resource URLs directly if query string exists
+  if (queryString) {
+    // Helper to add params to a URL while preserving special URL schemes
+    const addParams = (url: string): string => {
+      if (
+        !url ||
+        url.startsWith("data:") ||
+        url.startsWith("blob:") ||
+        url.startsWith("#") ||
+        // eslint-disable-next-line no-script-url
+        url.startsWith("javascript:")
+      ) {
+        return url;
       }
 
-      // Update an element's attribute if needed
-      function updateAttribute(element, attr) {
-        if (!element.hasAttribute(attr)) return;
-        
-        const value = element.getAttribute(attr);
-        if (!value) return;
-        
-        // Special handling for srcset
-        if (attr === 'srcset') {
-          const newValue = value.split(',')
-            .map(set => {
-              const [url, ...rest] = set.trim().split(/\\s+/);
-              return addParams(url) + (rest.length ? ' ' + rest.join(' ') : '');
-            })
-            .join(', ');
-          if (newValue !== value) element.setAttribute(attr, newValue);
-          return;
+      const separator = url.includes("?") ? "&" : "?";
+      return url + separator + queryString;
+    };
+
+    // Process elements with resource attributes (src, href, data)
+    ["src", "href", "data"].forEach((attr) => {
+      doc.querySelectorAll(`[${attr}]`).forEach((el) => {
+        const value = el.getAttribute(attr);
+        if (value) {
+          el.setAttribute(attr, addParams(value));
         }
-        
-        // Regular attribute handling
-        const newValue = addParams(value);
-        if (newValue !== value) element.setAttribute(attr, newValue);
-      }
-      
-      // Process all resources in the document
-      function processResources() {
-        // Process all elements with resource attributes
-        ['src', 'href', 'data'].forEach(attr => {
-          document.querySelectorAll('[' + attr + ']').forEach(el => {
-            // Special handling for scripts to ensure they reload
-            if (attr === 'src' && el.tagName === 'SCRIPT') {
-              const src = el.getAttribute('src');
-              const newSrc = addParams(src);
-              if (newSrc !== src) {
-                const newScript = document.createElement('script');
-                Array.from(el.attributes).forEach(a => {
-                  newScript.setAttribute(a.name === 'src' ? a.name : a.name, 
-                                        a.name === 'src' ? newSrc : a.value);
-                });
-                el.parentNode?.replaceChild(newScript, el);
-              }
-            } else {
-              updateAttribute(el, attr);
+      });
+    });
+
+    // Process srcset attributes for responsive images
+    doc.querySelectorAll("[srcset]").forEach((el) => {
+      const srcset = el.getAttribute("srcset");
+      if (srcset) {
+        const newValue = srcset
+          .split(",")
+          .map((set) => {
+            const parts = set.trim().split(/\s+/);
+            if (parts.length > 0) {
+              parts[0] = addParams(parts[0]);
             }
-          });
-        });
-        
-        // Handle srcset attribute
-        document.querySelectorAll('[srcset]').forEach(el => {
-          updateAttribute(el, 'srcset');
-        });
-
-        // Handle inline styles with background images
-        document.querySelectorAll('[style*="url("]').forEach(el => {
-          const style = el.getAttribute('style');
-          if (!style) return;
-          
-          const newStyle = style.replace(/url\\(['"]?([^'"\\)]+)['"]?\\)/g, 
-                                      (_, url) => 'url("' + addParams(url) + '")');
-          if (newStyle !== style) el.setAttribute('style', newStyle);
-        });
+            return parts.join(" ");
+          })
+          .join(", ");
+        el.setAttribute("srcset", newValue);
       }
+    });
 
-      // Run when DOM is loaded
-      if (document.readyState !== 'loading') {
-        processResources();
-      } else {
-        document.addEventListener('DOMContentLoaded', processResources);
+    // Process inline styles containing background-image URLs
+    doc.querySelectorAll("[style*='url(']").forEach((el) => {
+      const style = el.getAttribute("style");
+      if (style) {
+        const newStyle = style.replace(
+          /url\(['"]?([^'"\)]+)['"]?\)/g,
+          (match, url) => `url("${addParams(url)}")`
+        );
+        el.setAttribute("style", newStyle);
       }
-    }
-  `;
-}
+    });
+
+    // Process URLs in style elements
+    doc.querySelectorAll("style").forEach((styleEl) => {
+      if (styleEl.textContent) {
+        styleEl.textContent = styleEl.textContent.replace(
+          /url\(['"]?([^'"\)]+)['"]?\)/g,
+          (match, url) => `url("${addParams(url)}")`
+        );
+      }
+    });
+  }
+};
