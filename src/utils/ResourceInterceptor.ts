@@ -2,22 +2,22 @@
  * ResourceInterceptor
  *
  * A utility module that handles the interception and modification of resource URLs
- * in HTML documents. It adds query parameters from a manifest URL to all resource
- * URLs found in the document, including:
+ * in HTML documents. It adds CloudFront signed URL parameters from a manifest URL
+ * to all resource URLs found in the document, including:
  * - Elements with src, href, and data attributes
  * - Images with srcset attributes
  * - Inline styles with background-image URLs
  * - URLs in style elements
  *
  * This module is used to ensure all resources loaded by an iframe maintain the
- * query parameters from the original manifest URL.
+ * CloudFront signed URL parameters from the original manifest URL.
  */
 
 /**
- * Adds query parameters from a manifest URL to all resource URLs in a document.
+ * Adds CloudFront signed URL parameters from a manifest URL to all resource URLs in a document.
  *
  * This function processes the document and modifies all resource URLs to include
- * the query parameters from the manifest URL. It handles various types of URLs:
+ * the CloudFront signed URL parameters from the manifest URL. It handles various types of URLs:
  * - Absolute URLs
  * - Relative URLs
  * - URLs in srcset attributes
@@ -25,9 +25,11 @@
  * - URLs in style elements
  *
  * Special URL schemes (data:, blob:, #, javascript:) are preserved without modification.
+ * Existing query parameters that don't conflict with CloudFront parameters are preserved.
+ * Relative URLs remain relative after parameter addition.
  *
  * @param doc - The HTML document to process. Must be a valid Document object.
- * @param manifestUrl - The manifest URL containing query parameters to add. Must be a valid URL object.
+ * @param manifestUrl - The manifest URL containing CloudFront signed URL parameters. Must be a valid URL object.
  * @returns void
  */
 export const addQueryParamsToResources = (doc: Document, manifestUrl: URL) => {
@@ -36,22 +38,34 @@ export const addQueryParamsToResources = (doc: Document, manifestUrl: URL) => {
     return;
   }
 
-  // Extract query parameters from manifest URL if available
-  let queryString = "";
+  // Extract CloudFront signed URL parameters from manifest URL if available
+  let cloudfrontParams = new URLSearchParams();
   if (manifestUrl) {
     try {
       const url = new URL(manifestUrl);
-      queryString = url.search.startsWith("?")
-        ? url.search.substring(1)
-        : url.search;
+      const allParams = new URLSearchParams(url.search);
+
+      // Only keep CloudFront signed URL parameters
+      const cloudfrontParamKeys = [
+        "Expires",
+        "Policy",
+        "Signature",
+        "Key-Pair-Id",
+      ];
+      cloudfrontParamKeys.forEach((key) => {
+        const value = allParams.get(key);
+        if (value) {
+          cloudfrontParams.set(key, value);
+        }
+      });
     } catch (e) {
       console.error("Error parsing manifestUrl:", e);
     }
   }
 
-  // Add query parameters to resource URLs directly if query string exists
-  if (queryString) {
-    // Helper to add params to a URL while preserving special URL schemes
+  // Add CloudFront parameters to resource URLs directly if they exist
+  if (cloudfrontParams.toString()) {
+    // Helper to add params to a URL while preserving special URL schemes and non-conflicting params
     const addParams = (url: string): string => {
       if (
         !url ||
@@ -64,8 +78,42 @@ export const addQueryParamsToResources = (doc: Document, manifestUrl: URL) => {
         return url;
       }
 
-      const separator = url.includes("?") ? "&" : "?";
-      return url + separator + queryString;
+      try {
+        // Check if URL is relative
+        const isRelative =
+          !url.startsWith("http://") && !url.startsWith("https://");
+
+        // For relative URLs, we need to handle the path and query separately
+        if (isRelative) {
+          const [path, existingQuery] = url.split("?");
+          const existingParams = new URLSearchParams(existingQuery || "");
+
+          // Add CloudFront params, preserving non-conflicting existing params
+          cloudfrontParams.forEach((value, key) => {
+            existingParams.set(key, value);
+          });
+
+          // Reconstruct URL with combined params
+          const queryString = existingParams.toString();
+          return queryString ? `${path}?${queryString}` : path;
+        }
+
+        // For absolute URLs, use URL object for proper parsing
+        const resourceUrl = new URL(url);
+        const existingParams = new URLSearchParams(resourceUrl.search);
+
+        // Add CloudFront params, preserving non-conflicting existing params
+        cloudfrontParams.forEach((value, key) => {
+          existingParams.set(key, value);
+        });
+
+        // Reconstruct URL with combined params
+        resourceUrl.search = existingParams.toString();
+        return resourceUrl.toString();
+      } catch (e) {
+        console.warn(`Invalid URL "${url}":`, e);
+        return url;
+      }
     };
 
     // Process elements with resource attributes (src, href, data)
