@@ -98,7 +98,7 @@ import {
   ConsumptionModuleConfig,
 } from "../modules/consumption/ConsumptionModule";
 import KeyDownEvent = JQuery.KeyDownEvent;
-import { createResourceInterceptorScript } from "../utils/ResourceInterceptor";
+import { addQueryParamsToResources } from "../utils/ResourceInterceptor";
 
 export type GetContent = (href: string) => Promise<string>;
 export type GetContentBytesLength = (
@@ -1673,12 +1673,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         );
       }
 
-      // Inject fetch override script
-      const manifestUrl = this.publication.manifestUrl || "";
-      const resourceInterceptorScript =
-        createResourceInterceptorScript(manifestUrl);
-      head.appendChild(resourceInterceptorScript);
-
       this.injectables?.forEach((injectable) => {
         if (injectable.type === "style") {
           if (injectable.fontFamily) {
@@ -1766,7 +1760,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
 
     this.currentSpreadLinks = {};
 
-    function writeIframeDoc(content: string, href: string) {
+    const writeIframeDoc = (content: string, href: string) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(content, "application/xhtml+xml");
       if (doc.head) {
@@ -1778,6 +1772,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           );
         }
       }
+
+      // Process and add query parameters to resources
+      addQueryParamsToResources(doc, this.publication.manifestUrl);
+
       const newHTML = doc.documentElement.outerHTML;
       const iframeDoc = self.iframes[0].contentDocument;
       if (iframeDoc) {
@@ -1785,9 +1783,9 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         iframeDoc.write(newHTML);
         iframeDoc.close();
       }
-    }
+    };
 
-    function writeIframe2Doc(content: string, href: string) {
+    const writeIframe2Doc = (content: string, href: string) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(content, "application/xhtml+xml");
       if (doc.head) {
@@ -1799,6 +1797,10 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           );
         }
       }
+
+      // Process and add query parameters to resources
+      addQueryParamsToResources(doc, this.publication.manifestUrl);
+
       const newHTML = doc.documentElement.outerHTML;
       const iframeDoc = self.iframes[1].contentDocument;
       if (iframeDoc) {
@@ -1806,7 +1808,7 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
         iframeDoc.write(newHTML);
         iframeDoc.close();
       }
-    }
+    };
 
     const link = new URL(this.currentChapterLink.href);
     const isSameOrigin =
