@@ -323,6 +323,8 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
   sample?: SampleRead;
   requestConfig?: RequestConfig;
   private didInitKeyboardEventHandler: boolean = false;
+  // BACKWARD COMPATIBILITY: Flag to prevent page size changes during navigation
+  private isInitialSizingComplete: boolean = false;
 
   public static async create(
     config: IFrameNavigatorConfig
@@ -1390,7 +1392,11 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
       if (this.newPosition) {
         bookViewPosition = this.newPosition.locations.progression;
       }
-      await this.handleResize();
+      // BACKWARD COMPATIBILITY: Only resize during initial load, not on navigation
+      if (!this.isInitialSizingComplete) {
+        await this.handleResize();
+        this.isInitialSizingComplete = true;
+      }
       this.updateBookView({ skipDrawingAnnotations: true });
 
       await this.settings.applyProperties();
