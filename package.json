@@ -1,6 +1,6 @@
 {
   "name": "@savaslabs/reader",
-  "version": "2.4.17",
+  "version": "2.4.18",
   "description": "A viewer application for EPUB files forked from @d-i-t-a/reader.",
   "repository": "https://github.com/savaslabs/R2D2BC",
   "license": "Apache-2.0",
