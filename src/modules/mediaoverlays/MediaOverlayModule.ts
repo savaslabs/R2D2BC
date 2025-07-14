@@ -141,6 +141,11 @@ export class MediaOverlayModule implements ReaderModule {
       const moUrl = link.Properties?.MediaOverlay;
 
       const moUrlObjFull = new URL(moUrl, this.publication.manifestUrl);
+      // Pass through URL query parameters from manifest URL
+      const manifestUrl = new URL(this.publication.manifestUrl);
+      manifestUrl.searchParams.forEach((value, key) => {
+        moUrlObjFull.searchParams.set(key, value);
+      });
       const moUrlFull = moUrlObjFull.toString();
 
       let response: Response;
@@ -891,6 +896,11 @@ export class MediaOverlayModule implements ReaderModule {
                   moUrl,
                   this.publication.manifestUrl
                 );
+                // Pass through URL query parameters from manifest URL
+                const manifestUrl = new URL(this.publication.manifestUrl);
+                manifestUrl.searchParams.forEach((value, key) => {
+                  moUrlObjFull.searchParams.set(key, value);
+                });
                 const response = await fetch(
                   moUrlObjFull.toString(),
                   this.navigator.requestConfig
