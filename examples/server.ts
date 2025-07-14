@@ -68,7 +68,7 @@ async function start() {
     console.log("Local Publications: ", publicationURLs.length);
   });
 
-  const data = await server.start(4444, false);
+  const data = await server.start(32771, false);
 
   // http://127.0.0.1:3000
   // Note that ports 80 and 443 (HTTPS) are always implicit (ommitted).
