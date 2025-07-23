@@ -106,7 +106,7 @@ npm install
 npm run build && npm run examples
 ```
 
-Then visit `http://localhost:4444/`. Follow the prompts to view example apps.
+Then visit `http://localhost:32771/`. Follow the prompts to view example apps.
 
 ### WIKI
 
