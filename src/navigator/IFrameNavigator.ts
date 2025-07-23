@@ -549,16 +549,6 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
     }
   }
 
-  private calculateIframeScale(height: string | number): number {
-    return (
-      Math.round(
-        ((window.innerHeight - 86) /
-          parseInt(height.toString().replace("px", ""))) *
-          100
-      ) / 100
-    );
-  }
-
   protected async start(
     mainElement: HTMLElement,
     headerMenu?: HTMLElement | null,
@@ -2202,9 +2192,16 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           ? this.iframes[1].parentElement?.parentElement
           : (this.iframes[0].parentElement?.parentElement as HTMLElement);
       if (iframeParent && width) {
-        // Calculate scale to make iframe height equal to 100vh - 80px
-        const scale = this.calculateIframeScale(height);
-        iframeParent.style.transform = `scale(${scale})`;
+        var widthRatio =
+          (parseInt(getComputedStyle(iframeParent).width) - 100) /
+          (this.iframes.length === 2
+            ? parseInt(width.toString().replace("px", "")) * 2 + 200
+            : parseInt(width.toString().replace("px", "")));
+        var heightRatio =
+          (parseInt(getComputedStyle(iframeParent).height) - 100) /
+          parseInt(height.toString().replace("px", ""));
+        var scale = Math.min(widthRatio, heightRatio);
+        iframeParent.style.transform = "scale(" + scale + ")";
         for (const iframe of this.iframes) {
           iframe.style.height = height;
           iframe.style.width = width;
@@ -2706,9 +2703,26 @@ export class IFrameNavigator extends EventEmitter implements Navigator {
           }
         }
 
-        // Calculate scale to make iframe height equal to 100vh - 80px
-        const scale = this.calculateIframeScale(height);
-        iframeParent.style.transform = `scale(${scale})`;
+        var widthRatio =
+          (parseInt(getComputedStyle(iframeParent).width) - 100) /
+          (this.iframes.length === 2
+            ? parseInt(
+                width.toString().endsWith("px")
+                  ? width?.replace("px", "")
+                  : width
+              ) *
+                2 +
+              200
+            : parseInt(
+                width.toString().endsWith("px")
+                  ? width?.replace("px", "")
+                  : width
+              ));
+        var heightRatio =
+          (parseInt(getComputedStyle(iframeParent).height) - 100) /
+          parseInt(height.toString().replace("px", ""));
+        var scale = Math.min(widthRatio, heightRatio);
+        iframeParent.style.transform = "scale(" + scale + ")";
 
         for (const iframe of this.iframes) {
           iframe.style.height = height;
